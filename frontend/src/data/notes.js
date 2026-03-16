@@ -1,0 +1,35 @@
+export const notes = [
+  {
+    topic: 'DSA', icon: '🌳', subtopics: [
+      { title: 'Arrays & Strings', points: ['Access O(1), Search O(n), Insert/Delete O(n)', 'Two pointer technique for sorted arrays', 'Sliding window for subarray/substring problems', 'Prefix sum for range query optimization', 'Kadane\'s algo for max subarray O(n)', 'Dutch National Flag for 3-way partition'] },
+      { title: 'Linked Lists', points: ['Singly: traverse O(n), insert head O(1)', 'Doubly: bidirectional traversal, O(1) delete with pointer', 'Cycle detection: Floyd\'s (fast/slow pointer)', 'Reverse: iterative with 3 pointers O(n) O(1) space', 'Merge two sorted: compare heads, recurse or iterate', 'Find middle: fast moves 2x slow'] },
+      { title: 'Trees', points: ['BST: search/insert O(log n) avg, O(n) worst', 'Balanced BST ensures O(log n): AVL, Red-Black', 'Tree traversals: Pre/In/Post-order (DFS), Level-order (BFS)', 'Height = 1 + max(left_height, right_height)', 'Diameter = max path through any node', 'LCA: binary lifting O(n log n) preprocessing, O(log n) query'] },
+      { title: 'Graphs', points: ['Representations: Adjacency Matrix O(V²) space, List O(V+E)', 'BFS: shortest path unweighted, uses queue', 'DFS: cycle detection, topological sort, SCCs', 'Dijkstra: single source shortest path, non-negative weights, O((V+E)logV)', 'Bellman-Ford: negative weights, O(VE), detects neg cycles', 'Floyd-Warshall: all-pairs shortest path O(V³)', 'Topological sort: only for DAGs (in-degree BFS or DFS)'] },
+      { title: 'Dynamic Programming', points: ['Identify: overlapping subproblems + optimal substructure', 'Memoization (top-down) vs Tabulation (bottom-up)', 'Common: LCS, LIS, Knapsack, Matrix Chain, Edit Distance', 'LCS: O(mn) time and space, LIS: O(n log n) with patience sorting', 'Knapsack: O(nW), reducible to O(W) space', 'Coin change is unbounded knapsack variant'] },
+    ]
+  },
+  {
+    topic: 'OS', icon: '⚙️', subtopics: [
+      { title: 'Process Management', points: ['Process states: New → Ready → Running → Waiting → Terminated', 'PCB: PID, state, PC, registers, memory limits, open files', 'Context switch saves/restores PCB of current process', 'Fork() creates child process; exec() replaces process image', 'Zombie: terminated but parent not called wait()', 'Orphan: parent terminated before child'] },
+      { title: 'CPU Scheduling', points: ['FCFS: non-preemptive, simple, convoy effect', 'SJF: minimum avg waiting time, needs burst time prediction', 'SRTF: preemptive SJF, may cause starvation', 'Round Robin: fair, time quantum q, preemptive', 'Priority: can starve; fix with aging (increment priority over time)', 'Multilevel Queue: separate queues per process type'] },
+      { title: 'Memory Management', points: ['Logical vs Physical address: MMU does translation', 'Paging: fixed size pages, internal fragmentation', 'Segmentation: logical segments, external fragmentation', 'Page replacement: FIFO (Belady\'s anomaly), Optimal, LRU, Clock', 'Working Set model: track pages in last W references', 'Thrashing: solved by reducing degree of multiprogramming'] },
+      { title: 'Synchronization', points: ['Race condition: outcome depends on execution order', 'Critical section: at most one process inside at a time', 'Mutex: binary lock, owned by thread that locked it', 'Semaphore: can be signaled by different thread/process', 'Monitor: higher-level sync construct with condition variables (Java synchronized)', 'Deadlock conditions: Mutual Exclusion, Hold&Wait, No Preemption, Circular Wait'] },
+    ]
+  },
+  {
+    topic: 'DBMS', icon: '🗄️', subtopics: [
+      { title: 'SQL Fundamentals', points: ['SELECT * FROM t WHERE c GROUP BY c HAVING agg ORDER BY c LIMIT n', 'Execution order: FROM → WHERE → GROUP BY → HAVING → SELECT → ORDER BY → LIMIT', 'Joins: INNER, LEFT, RIGHT, FULL OUTER, CROSS, SELF', 'Subqueries: correlated (depends on outer), non-correlated', 'EXISTS vs IN: EXISTS short-circuits, efficient for large sets', 'UNION removes duplicates, UNION ALL keeps them'] },
+      { title: 'Normalization', points: ['1NF: atomic values, no repeating groups', '2NF: 1NF + no partial dependencies (composite key issue)', '3NF: 2NF + no transitive dependencies', 'BCNF: every determinant is a candidate key (stronger than 3NF)', 'Denormalization: intentionally add redundancy for read performance', 'Most OLTP systems: 3NF. OLAP/DWH: Star/Snowflake schema'] },
+      { title: 'Indexing', points: ['B+ Tree: data only in leaves (linked list), best for range queries', 'Hash Index: O(1) point queries, no range queries', 'Clustered index: table data sorted by index key (1 per table)', 'Non-clustered: separate structure pointing to rows (multiple allowed)', 'Covering index: query satisfied entirely from index', 'Selectivity: high cardinality columns benefit most from indexing'] },
+      { title: 'Transactions', points: ['ACID: Atomicity, Consistency, Isolation, Durability', 'Dirty read: read uncommitted data of another transaction', 'Non-repeatable read: row changed between two reads within same txn', 'Phantom read: new rows appear/disappear between reads', 'Isolation levels: READ UNCOMMITTED → COMMITTED → REPEATABLE READ → SERIALIZABLE', 'WAL (Write-Ahead Logging) ensures durability'] },
+    ]
+  },
+  {
+    topic: 'CN', icon: '🌐', subtopics: [
+      { title: 'OSI & TCP/IP', points: ['OSI 7 layers: Application, Presentation, Session, Transport, Network, Data Link, Physical', 'TCP/IP 4 layers: Application, Transport, Internet, Network Access', 'TCP: reliable, ordered, connection-oriented (3-way handshake)', 'UDP: unreliable, connectionless, faster, for streaming/DNS/VoIP', 'Port numbers: HTTP 80, HTTPS 443, DNS 53, FTP 21, SSH 22, SMTP 25'] },
+      { title: 'IP & Routing', points: ['IPv4: 32-bit, 4 octets. IPv6: 128-bit, 8 groups of 4 hex', 'Private ranges: 10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16', 'Subnetting: host bits for subnets, remaining for hosts. Hosts = 2^n - 2', 'NAT: many private IPs → one public IP (PAT uses ports)', 'Routing protocols: RIP (distance vector), OSPF (link state), BGP (path vector, between ASes)', 'TTL: decremented at each hop, drop at 0 to prevent infinite loops'] },
+      { title: 'Application Layer', points: ['HTTP: stateless, text-based. HTTPS = HTTP + TLS', 'HTTP methods: GET (safe, idempotent), POST, PUT (idempotent), PATCH, DELETE', 'Status: 1xx info, 2xx success, 3xx redirect, 4xx client error, 5xx server error', 'DNS resolution: Browser → OS → Resolver → Root → TLD → Authoritative → IP', 'REST API: stateless, uniform interface, cacheable, layered', 'WebSocket: full-duplex, persistent connection over single TCP'] },
+      { title: 'Security', points: ['TLS: asymmetric for key exchange, symmetric for data. TLS 1.3 = 1-RTT', 'Forward Secrecy: ECDHE ensures past sessions safe if private key compromised', 'Common attacks: DDoS, MITM, SQL injection, XSS, CSRF', 'CSP: Content Security Policy header blocks XSS', 'CORS: server allows specific origins to make cross-origin requests', 'Cookie flags: HttpOnly (no JS access), Secure (HTTPS only), SameSite (CSRF protection)'] },
+    ]
+  },
+];
