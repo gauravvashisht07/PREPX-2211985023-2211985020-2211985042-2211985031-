@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import api from '../api/axios.js';
+import { useToast } from '../context/ToastContext.jsx';
 import { Save, Download, Plus, Trash2 } from 'lucide-react';
 
 const defaultData = {
@@ -13,6 +14,7 @@ const defaultData = {
 const STEPS = ['Personal', 'Education', 'Experience', 'Projects', 'Skills'];
 
 export default function ResumeBuilder() {
+  const toast = useToast();
   const [data, setData] = useState(defaultData);
   const [step, setStep] = useState(0);
   const [saving, setSaving] = useState(false);
@@ -46,15 +48,26 @@ export default function ResumeBuilder() {
     try {
       await api.put('/resume', data);
       setSaved(true); setTimeout(() => setSaved(false), 2000);
-    } catch {}
+      toast.success('Resume saved! ✅');
+    } catch { toast.error('Failed to save resume'); }
     setSaving(false);
   };
 
   const exportPDF = async () => {
     const el = previewRef.current;
     if (!el) return;
-    const html2pdf = (await import('html2pdf.js')).default;
-    html2pdf().set({ margin: 0.4, filename: `${data.personal.name || 'resume'}.pdf`, jsPDF: { unit: 'in', format: 'a4' }, image: { type: 'jpeg', quality: 0.98 } }).from(el).save();
+    toast.info('Generating PDF…');
+    try {
+      const html2pdf = (await import('html2pdf.js')).default;
+      await html2pdf().set({
+        margin: [0.4, 0.4, 0.4, 0.4],
+        filename: `${data.personal.name || 'resume'}.pdf`,
+        jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' },
+        image: { type: 'jpeg', quality: 0.98 },
+        pagebreak: { mode: ['avoid-all', 'css', 'legacy'] },
+      }).from(el).save();
+      toast.success('PDF downloaded!');
+    } catch { toast.error('PDF export failed'); }
   };
 
   const inp = (lbl, val, onChange, type = 'text', ph = '') => (

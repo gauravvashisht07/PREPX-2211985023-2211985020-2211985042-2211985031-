@@ -1,24 +1,39 @@
-import { useState, useEffect } from 'react';
-import { questions, topics, difficulties } from '../data/questions.js';
+import { useState, useEffect, useRef } from 'react';
+import { questions, topics } from '../data/questions.js';
 import api from '../api/axios.js';
+import { useToast } from '../context/ToastContext.jsx';
+import { QuestionSkeleton } from '../components/Skeleton.jsx';
 import { ChevronDown, ChevronUp, CheckCircle, Circle, Search } from 'lucide-react';
 
 export default function QuestionBank() {
+  const toast = useToast();
   const [topic, setTopic] = useState('All');
   const [diff, setDiff] = useState('All');
   const [search, setSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [expanded, setExpanded] = useState(null);
   const [solved, setSolved] = useState([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
 
+  // Debounce search input by 300ms
   useEffect(() => {
-    api.get('/progress').then(r => setSolved(r.data.solvedQuestions || [])).catch(() => {});
+    const timer = setTimeout(() => setDebouncedSearch(search), 300);
+    return () => clearTimeout(timer);
+  }, [search]);
+
+  // Fetch progress with AbortController
+  useEffect(() => {
+    const controller = new AbortController();
+    api.get('/progress', { signal: controller.signal })
+      .then(r => { setSolved(r.data.solvedQuestions || []); setLoading(false); })
+      .catch(err => { if (err.name !== 'CanceledError') setLoading(false); });
+    return () => controller.abort();
   }, []);
 
   const filtered = questions.filter(q =>
     (topic === 'All' || q.topic === topic) &&
     (diff === 'All' || q.difficulty === diff) &&
-    (search === '' || q.question.toLowerCase().includes(search.toLowerCase()))
+    (debouncedSearch === '' || q.question.toLowerCase().includes(debouncedSearch.toLowerCase()))
   );
 
   const toggleSolved = async (q) => {
@@ -27,11 +42,13 @@ export default function QuestionBank() {
       if (isSolved) {
         await api.delete(`/progress/solved/${q.id}`);
         setSolved(s => s.filter(id => id !== q.id));
+        toast.info('Question unmarked');
       } else {
         const res = await api.post('/progress/solved', { questionId: q.id, topic: q.topic });
         setSolved(res.data.solvedQuestions || []);
+        toast.success('Question marked as solved! 🎯');
       }
-    } catch {}
+    } catch { toast.error('Failed to update progress'); }
   };
 
   const topicCounts = {};
@@ -47,7 +64,6 @@ export default function QuestionBank() {
       </div>
 
       <div className="qb-layout">
-        {/* Filters */}
         <aside>
           <div className="glass" style={{ padding: 16, marginBottom: 12 }}>
             <div style={{ position: 'relative' }}>
@@ -66,7 +82,7 @@ export default function QuestionBank() {
           </div>
           <div className="glass" style={{ padding: 16 }}>
             <div className="filter-title">Difficulty</div>
-            {difficulties.map(d => (
+            {['All', 'Easy', 'Medium', 'Hard'].map(d => (
               <button key={d} className={`filter-btn ${diff === d ? 'active' : ''}`} onClick={() => setDiff(d)}>
                 {d !== 'All' && <span className={`badge badge-${d.toLowerCase()}`} style={{ padding: '1px 6px', fontSize: '0.7rem' }}>{d}</span>}
                 {d === 'All' && d}
@@ -75,9 +91,10 @@ export default function QuestionBank() {
           </div>
         </aside>
 
-        {/* Questions */}
         <div>
-          {filtered.length === 0 ? (
+          {loading ? (
+            Array.from({ length: 6 }).map((_, i) => <QuestionSkeleton key={i} />)
+          ) : filtered.length === 0 ? (
             <div style={{ textAlign: 'center', padding: '60px 20px', color: 'var(--text-muted)' }}>
               <div style={{ fontSize: '3rem', marginBottom: 12 }}>🔍</div>
               <p>No questions match your filters.</p>
@@ -102,7 +119,7 @@ export default function QuestionBank() {
                   <div className="question-body">
                     <div className="filter-title" style={{ marginBottom: 8 }}>💡 Answer</div>
                     <div className="answer-box">{q.answer}</div>
-                    <div style={{ marginTop: 12, display: 'flex', gap: 8 }}>
+                    <div style={{ marginTop: 12 }}>
                       <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Subtopic: <span className="badge badge-primary" style={{ fontSize: '0.72rem' }}>{q.subtopic}</span></span>
                     </div>
                   </div>

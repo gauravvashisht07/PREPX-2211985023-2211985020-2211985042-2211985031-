@@ -1,29 +1,46 @@
 import { useState, useEffect } from 'react';
 import api from '../api/axios.js';
+import { useToast } from '../context/ToastContext.jsx';
+import { StatCardSkeleton, Skeleton } from '../components/Skeleton.jsx';
 import { Flame, Trophy, BookOpen, Target } from 'lucide-react';
 
 export default function Progress() {
+  const toast = useToast();
   const [progress, setProgress] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    api.get('/progress').then(r => { setProgress(r.data); setLoading(false); }).catch(() => setLoading(false));
+    const controller = new AbortController();
+    api.get('/progress', { signal: controller.signal })
+      .then(r => { setProgress(r.data); setLoading(false); })
+      .catch(err => { if (err.name !== 'CanceledError') { setLoading(false); toast.error('Failed to load progress'); } });
+    return () => controller.abort();
   }, []);
 
-  if (loading) return <div style={{ textAlign: 'center', padding: 80, color: 'var(--text-muted)' }}>Loading progress…</div>;
+  const days = Array.from({ length: 30 }, (_, i) => {
+    const d = new Date(); d.setDate(d.getDate() - (29 - i));
+    return d.toISOString().slice(0, 10);
+  });
+
+  if (loading) return (
+    <div style={{ animation: 'fadeInUp 0.4s ease' }}>
+      <div className="section-header">
+        <h1 className="section-title">My Progress</h1>
+      </div>
+      <div className="stats-grid" style={{ marginBottom: 28 }}>{[1,2,3,4].map(i => <StatCardSkeleton key={i} />)}</div>
+      <div className="glass" style={{ padding: 24, marginBottom: 24 }}>
+        <Skeleton height={24} width="30%" style={{ marginBottom: 20 }} />
+        {[1,2,3,4,5].map(i => <div key={i} style={{ marginBottom: 16 }}><Skeleton height={14} width="80%" style={{ marginBottom: 8 }} /><Skeleton height={8} /></div>)}
+      </div>
+    </div>
+  );
+
   if (!progress) return <div style={{ textAlign: 'center', padding: 80, color: 'var(--text-muted)' }}>No progress data yet. Start solving questions!</div>;
 
   const solved = progress.solvedQuestions?.length || 0;
   const total = Object.values(progress.topicStats || {}).reduce((a, t) => a + t.total, 0);
   const streak = progress.streak || 0;
   const activity = new Set(progress.activityLog || []);
-
-  // Build last 30 days
-  const days = Array.from({ length: 30 }, (_, i) => {
-    const d = new Date(); d.setDate(d.getDate() - (29 - i));
-    return d.toISOString().slice(0, 10);
-  });
-
   const topicList = Object.entries(progress.topicStats || {});
 
   return (
@@ -33,7 +50,6 @@ export default function Progress() {
         <p className="section-sub">Track your preparation journey</p>
       </div>
 
-      {/* Top stats */}
       <div className="stats-grid" style={{ marginBottom: 28 }}>
         {[
           { icon: BookOpen, label: 'Total Solved', value: `${solved}/${total}`, color: '#8b5cf6', bg: 'rgba(139,92,246,0.15)' },
@@ -48,7 +64,6 @@ export default function Progress() {
         ))}
       </div>
 
-      {/* Topic Progress */}
       <div className="glass" style={{ padding: 24, marginBottom: 24 }}>
         <h2 style={{ fontSize: '1.1rem', marginBottom: 20 }}>📊 Topic Progress</h2>
         {topicList.map(([topic, stats]) => {
@@ -68,26 +83,27 @@ export default function Progress() {
         })}
       </div>
 
-      {/* Activity Heatmap */}
       <div className="glass" style={{ padding: 24 }}>
         <h2 style={{ fontSize: '1.1rem', marginBottom: 16 }}>🗓️ Activity — Last 30 Days</h2>
-        <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
-          {days.map((d, i) => {
+        <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
+          {days.map(d => {
             const isActive = activity.has(d);
             const isToday = d === new Date().toISOString().slice(0, 10);
             return (
               <div key={d} title={d} style={{
-                width: 24, height: 24, borderRadius: 5,
+                width: 28, height: 28, borderRadius: 6,
                 background: isToday ? 'rgba(139,92,246,0.6)' : isActive ? 'rgba(139,92,246,0.9)' : 'rgba(255,255,255,0.05)',
-                border: isToday ? '2px solid #8b5cf6' : '1px solid transparent',
-                cursor: 'default', flexShrink: 0,
+                border: isToday ? '2px solid #8b5cf6' : '1px solid rgba(255,255,255,0.05)',
+                flexShrink: 0, cursor: 'default',
                 transition: 'transform 0.2s',
               }} />
             );
           })}
         </div>
         <div style={{ marginTop: 12, display: 'flex', gap: 16, fontSize: '0.78rem', color: 'var(--text-muted)' }}>
-          <span>■ Active day</span><span style={{ color: 'rgba(255,255,255,0.2)' }}>■ No activity</span><span style={{ color: '#8b5cf6' }}>■ Today</span>
+          <span style={{ color: '#8b5cf6' }}>■ Active day</span>
+          <span>■ No activity</span>
+          <span style={{ color: '#8b5cf6', opacity: 0.6 }}>■ Today</span>
         </div>
       </div>
     </div>

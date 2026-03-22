@@ -1,7 +1,7 @@
 import Progress from '../models/Progress.js';
 
-// Static pool size — matches src/data/dailyChallenges.js
-const POOL_SIZE = 12;
+// Static pool size — matches frontend/src/data/dailyChallenges.js
+const POOL_SIZE = 30;
 
 function getDayOfYear() {
   const now = new Date();

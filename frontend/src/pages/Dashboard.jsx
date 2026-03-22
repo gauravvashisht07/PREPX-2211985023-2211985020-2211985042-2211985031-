@@ -3,10 +3,12 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
 import api from '../api/axios.js';
 import { dailyChallenges } from '../data/dailyChallenges.js';
-import { BookOpen, Mic2, FileText, BarChart2, Star, Building2, StickyNote, CheckSquare, Flame, Target, Award, Zap } from 'lucide-react';
+import { StatCardSkeleton } from '../components/Skeleton.jsx';
+import { BookOpen, Flame, Target, Award } from 'lucide-react';
 
 const features = [
   { to: '/questions', icon: '📚', title: 'Question Bank', desc: '45+ curated questions across DSA, OS, DBMS, CN & HR', color: '#8b5cf6' },
+  { to: '/mcq', icon: '📋', title: 'MCQ Practice', desc: '36 MCQs across all topics with instant feedback', color: '#3b82f6' },
   { to: '/mock', icon: '🎯', title: 'Mock Interview', desc: 'Timed interview sessions with self-evaluation', color: '#06b6d4' },
   { to: '/daily', icon: '⚡', title: 'Daily Challenge', desc: 'A fresh challenge every day to stay sharp', color: '#f59e0b' },
   { to: '/progress', icon: '📈', title: 'My Progress', desc: 'Streaks, solved questions & topic coverage', color: '#10b981' },
@@ -20,10 +22,16 @@ export default function Dashboard() {
   const { user } = useAuth();
   const [progress, setProgress] = useState(null);
   const [daily, setDaily] = useState(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    api.get('/progress').then(r => setProgress(r.data)).catch(() => {});
-    api.get('/daily/challenge').then(r => setDaily(r.data)).catch(() => {});
+    const c1 = new AbortController(), c2 = new AbortController();
+    Promise.all([
+      api.get('/progress', { signal: c1.signal }).then(r => setProgress(r.data)),
+      api.get('/daily/challenge', { signal: c2.signal }).then(r => setDaily(r.data)),
+    ]).catch(err => { if (err.name !== 'CanceledError') {} })
+      .finally(() => setLoading(false));
+    return () => { c1.abort(); c2.abort(); };
   }, []);
 
   const today = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
@@ -41,39 +49,29 @@ export default function Dashboard() {
 
   return (
     <div style={{ animation: 'fadeInUp 0.4s ease' }}>
-      {/* Welcome Banner */}
       <div style={{ background: 'linear-gradient(135deg, rgba(139,92,246,0.2), rgba(6,182,212,0.12))', border: '1px solid rgba(139,92,246,0.25)', borderRadius: 'var(--radius-lg)', padding: '28px 32px', marginBottom: 28, position: 'relative', overflow: 'hidden' }}>
         <div style={{ position: 'absolute', top: -30, right: -20, fontSize: '8rem', opacity: 0.07 }}>🎓</div>
         <div style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginBottom: 6 }}>{today}</div>
         <h1 style={{ fontSize: '1.8rem', marginBottom: 8 }}>
           {greeting()}, <span className="gradient-text">{user?.name?.split(' ')[0] || 'Student'}!</span> 👋
         </h1>
-        <p style={{ color: 'var(--text-secondary)', fontSize: '0.95rem' }}>
-          Ready to ace your placements? Let's keep the streak going!
-        </p>
+        <p style={{ color: 'var(--text-secondary)', fontSize: '0.95rem' }}>Ready to ace your placements? Let's keep the streak going!</p>
       </div>
 
-      {/* Stats */}
       <div className="stats-grid">
-        {[
+        {loading ? [1,2,3,4].map(i => <StatCardSkeleton key={i} />) : [
           { icon: BookOpen, label: 'Questions Solved', value: solved, color: '#8b5cf6', bg: 'rgba(139,92,246,0.15)' },
           { icon: Flame, label: 'Current Streak', value: `${streak}d`, color: '#f59e0b', bg: 'rgba(245,158,11,0.15)' },
           { icon: Target, label: 'Topics Covered', value: `${topics}/5`, color: '#10b981', bg: 'rgba(16,185,129,0.15)' },
           { icon: Award, label: 'Best Streak', value: `${progress?.maxStreak || 0}d`, color: '#f472b6', bg: 'rgba(244,114,182,0.15)' },
         ].map(({ icon: Icon, label, value, color, bg }) => (
           <div key={label} className="stat-card">
-            <div className="stat-icon" style={{ background: bg }}>
-              <Icon size={22} color={color} />
-            </div>
-            <div>
-              <div className="stat-value" style={{ color }}>{value}</div>
-              <div className="stat-label">{label}</div>
-            </div>
+            <div className="stat-icon" style={{ background: bg }}><Icon size={22} color={color} /></div>
+            <div><div className="stat-value" style={{ color }}>{value}</div><div className="stat-label">{label}</div></div>
           </div>
         ))}
       </div>
 
-      {/* Daily Challenge Preview */}
       {todayChallenge && (
         <div style={{ background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.25)', borderRadius: 'var(--radius)', padding: '20px 24px', marginBottom: 28, display: 'flex', alignItems: 'center', gap: 20, flexWrap: 'wrap' }}>
           <div style={{ fontSize: '2rem' }}>⚡</div>
@@ -90,7 +88,6 @@ export default function Dashboard() {
         </div>
       )}
 
-      {/* Feature Cards */}
       <div className="section-header">
         <h2 className="section-title" style={{ fontSize: '1.3rem' }}>All Features</h2>
       </div>

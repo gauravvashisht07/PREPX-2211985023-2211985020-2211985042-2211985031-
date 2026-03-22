@@ -2,12 +2,13 @@ import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
 import {
   LayoutDashboard, BookOpen, Mic2, FileText, BarChart2,
-  Star, Building2, StickyNote, CheckSquare, LogOut, X
+  Star, Building2, StickyNote, CheckSquare, LogOut, X, ClipboardList
 } from 'lucide-react';
 
 const navItems = [
   { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
   { to: '/questions', icon: BookOpen, label: 'Question Bank' },
+  { to: '/mcq', icon: ClipboardList, label: 'MCQ Practice' },
   { to: '/mock', icon: Mic2, label: 'Mock Interview' },
   { to: '/daily', icon: Star, label: 'Daily Challenge' },
   { to: '/progress', icon: BarChart2, label: 'My Progress' },
@@ -31,7 +32,9 @@ export default function Sidebar({ open, onClose }) {
         <div className="sidebar-logo">
           <div className="sidebar-logo-icon">P</div>
           <span className="sidebar-logo-text gradient-text">Prepx</span>
-          <button onClick={onClose} style={{ marginLeft: 'auto', background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', display: 'none' }} className="sidebar-close-btn">
+          {/* ✅ Fixed: close button now visible on mobile */}
+          <button onClick={onClose} className="sidebar-close-btn" aria-label="Close sidebar"
+            style={{ marginLeft: 'auto', background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}>
             <X size={18} />
           </button>
         </div>

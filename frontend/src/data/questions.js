@@ -15,6 +15,112 @@ export const questions = [
   { id: 13, topic: 'DSA', subtopic: 'Bit Manipulation', difficulty: 'Hard', question: 'Find the only non-repeating element where all others repeat twice.', answer: 'XOR all elements. Since a XOR a = 0 and a XOR 0 = a, all pairs cancel out, leaving the unique element. Time: O(n), Space: O(1).' },
   { id: 14, topic: 'DSA', subtopic: 'Greedy', difficulty: 'Medium', question: 'Explain Activity Selection problem using Greedy.', answer: 'Sort activities by finish time; always pick the one with earliest finish not conflicting with last selected. Time: O(n log n). This greedy choice always leads to optimal solution.' },
   { id: 15, topic: 'DSA', subtopic: 'Stacks', difficulty: 'Easy', question: 'What is a Stack and its primary operations?', answer: 'LIFO data structure. Operations: push O(1), pop O(1), peek O(1), isEmpty O(1). Applications: function call stack, undo, expression evaluation, backtracking.' },
+  {
+    id: 16,
+    topic: 'DSA',
+    subtopic: 'Queues',
+    difficulty: 'Easy',
+    question: 'What is a Queue and where is it used?',
+    answer: 'Queue is a FIFO (First In First Out) data structure. Operations: enqueue, dequeue. Used in BFS, scheduling, buffering, and handling requests in systems.'
+  },
+  {
+    id: 17,
+    topic: 'DSA',
+    subtopic: 'Recursion',
+    difficulty: 'Medium',
+    question: 'What is recursion and its base case importance?',
+    answer: 'Recursion is when a function calls itself. Base case stops infinite calls. Without base case → stack overflow. Example: factorial, Fibonacci.'
+  },
+  {
+    id: 18,
+    topic: 'DSA',
+    subtopic: 'Backtracking',
+    difficulty: 'Medium',
+    question: 'What is backtracking? Give example.',
+    answer: 'Backtracking tries all possibilities and backtracks when condition fails. Used in N-Queens, Sudoku, permutations. Time complexity is usually exponential.'
+  },
+  {
+    id: 19,
+    topic: 'DSA',
+    subtopic: 'Searching',
+    difficulty: 'Easy',
+    question: 'What is Linear Search?',
+    answer: 'Checks each element one by one. Works on unsorted data. Time: O(n), Space: O(1).'
+  },
+  {
+    id: 20,
+    topic: 'DSA',
+    subtopic: 'Searching',
+    difficulty: 'Medium',
+    question: 'When can Binary Search be applied?',
+    answer: 'Only when data is sorted. It repeatedly divides search space in half. Time: O(log n), Space: O(1).'
+  },
+  {
+    id: 21,
+    topic: 'DSA',
+    subtopic: 'Trees',
+    difficulty: 'Medium',
+    question: 'What is height of a binary tree?',
+    answer: 'Height is the number of edges in longest path from root to leaf. For balanced tree → O(log n), worst case → O(n).'
+  },
+  {
+    id: 22,
+    topic: 'DSA',
+    subtopic: 'Trees',
+    difficulty: 'Medium',
+    question: 'What is Lowest Common Ancestor (LCA)?',
+    answer: 'The lowest node that has both nodes as descendants. In BST → can be found in O(log n). In general tree → use recursion or binary lifting.'
+  },
+  {
+    id: 23,
+    topic: 'DSA',
+    subtopic: 'Graphs',
+    difficulty: 'Medium',
+    question: 'What is adjacency list vs matrix?',
+    answer: 'Adjacency List: O(V+E) space, efficient for sparse graphs. Matrix: O(V²) space, faster edge lookup. Choice depends on graph density.'
+  },
+  {
+    id: 24,
+    topic: 'DSA',
+    subtopic: 'Graphs',
+    difficulty: 'Hard',
+    question: 'What is Topological Sorting?',
+    answer: 'Ordering of vertices in DAG such that u→v means u comes before v. Done using DFS or Kahn’s Algorithm (BFS). Time: O(V+E).'
+  },
+  {
+    id: 25,
+    topic: 'DSA',
+    subtopic: 'Heap',
+    difficulty: 'Medium',
+    question: 'What is a Heap and its types?',
+    answer: 'Heap is a complete binary tree. Types: Min-Heap (parent ≤ children), Max-Heap (parent ≥ children). Used in priority queues.'
+  },
+  {
+    id: 26,
+    topic: 'DSA',
+    subtopic: 'Heap',
+    difficulty: 'Medium',
+    question: 'What is time complexity of heap operations?',
+    answer: 'Insert: O(log n), Delete: O(log n), Peek: O(1). Heapify takes O(log n).'
+  },
+  {
+    id: 27,
+    topic: 'DSA',
+    subtopic: 'Trie',
+    difficulty: 'Medium',
+    question: 'What is Trie and its use case?',
+    answer: 'Trie is a tree for storing strings. Used in prefix search, autocomplete, dictionary. Time: O(length of word).'
+  },
+  {
+    id: 28,
+    topic: 'DSA',
+    subtopic: 'Bit Manipulation',
+    difficulty: 'Medium',
+    question: 'How to check if a number is power of 2?',
+    answer: 'If n > 0 and (n & (n-1)) == 0, then n is power of 2. Uses bit trick.'
+  },
+  {id: 29,topic: 'DSA',subtopic: 'Dynamic Programming',difficulty: 'Hard',question: 'What is Longest Common Subsequence (LCS)?',answer: 'Find longest subsequence common in two strings. dp[i][j] = 1 + dp[i-1][j-1] if match else max(dp[i-1][j], dp[i][j-1]). Time: O(n×m).'},
+  {id: 30,topic: 'DSA',subtopic: 'Greedy',difficulty: 'Medium',question: 'When does Greedy fail?', answer: 'Greedy fails when local optimal choice does not lead to global optimal solution. Example: 0/1 Knapsack requires DP.'},
 
   // OS
   { id: 16, topic: 'OS', subtopic: 'Processes', difficulty: 'Easy', question: 'What is the difference between a process and a thread?', answer: 'Process: independent execution with own memory space, PCB, resources. Thread: lightweight unit within a process, shares memory with sibling threads. Thread context switching is faster. Threads communicate via shared memory; processes use IPC.' },
