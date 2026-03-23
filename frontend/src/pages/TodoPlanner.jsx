@@ -89,7 +89,7 @@ export default function TodoPlanner() {
               </div>
               <div className="form-group">
                 <label className="label">Due Date</label>
-                <input type="date" className="input" value={form.dueDate} onChange={e => setForm(f => ({ ...f, dueDate: e.target.value }))} style={{ colorScheme: 'dark' }} />
+                <input type="date" className="input" value={form.dueDate} onChange={e => setForm(f => ({ ...f, dueDate: e.target.value }))} min={todayStr()} style={{ colorScheme: 'dark' }} />
               </div>
               <div className="form-group">
                 <label className="label">Topic (optional)</label>

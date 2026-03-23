@@ -16,6 +16,8 @@ export default function MCQ() {
   const [answers, setAnswers] = useState({});
   const [loading, setLoading] = useState(true);
   const [showResults, setShowResults] = useState(false);
+  const [submitting, setSubmitting] = useState(null); // Track which question is being submitted
+  const submitTimeoutRef = useRef({});
 
   // Debounce search
   useEffect(() => {
@@ -23,13 +25,25 @@ export default function MCQ() {
     return () => clearTimeout(timer);
   }, [search]);
 
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      Object.values(submitTimeoutRef.current).forEach(timeout => clearTimeout(timeout));
+    };
+  }, []);
+
   // Fetch attempted questions & answers
   useEffect(() => {
     const controller = new AbortController();
     api.get('/mcq', { signal: controller.signal })
       .then(r => {
         setAttempted(r.data.attemptedQuestions || []);
-        setAnswers(r.data.answers || {});
+        // Convert string keys to numbers for consistency
+        const answersMap = {};
+        Object.entries(r.data.answers || {}).forEach(([key, value]) => {
+          answersMap[parseInt(key)] = value;
+        });
+        setAnswers(answersMap);
         setLoading(false);
       })
       .catch(err => { if (err.name !== 'CanceledError') setLoading(false); });
@@ -43,28 +57,54 @@ export default function MCQ() {
   );
 
   const handleAnswerSubmit = async (questionId, selectedOption) => {
+    // Prevent multiple rapid submissions for the same question
+    if (submitting === questionId) return;
+
     const isMCQAnswered = Object.hasOwn(answers, questionId);
+    setSubmitting(questionId);
+
     try {
-      const res = await api.post('/mcq/answer', { questionId, selectedOption });
-      setAnswers(res.data.answers || {});
-      setAttempted(res.data.attemptedQuestions || []);
-      
       const question = mcqQuestions.find(q => q.id === questionId);
+      if (!question) throw new Error('Question not found');
+
       const isCorrect = selectedOption === question.correctAnswer;
-      
+
+      const res = await api.post('/mcq/answer', {
+        questionId,
+        selectedOption,
+        topic: question.topic,
+        isCorrect,
+      });
+
+      if (!res.data || !res.data.answers) {
+        throw new Error('Invalid response from server');
+      }
+
+      // Convert string keys to numbers for consistency
+      const answersMap = {};
+      Object.entries(res.data.answers || {}).forEach(([key, value]) => {
+        answersMap[parseInt(key)] = value;
+      });
+      setAnswers(answersMap);
+      setAttempted(res.data.attemptedQuestions || []);
+
       if (!isMCQAnswered) {
         if (isCorrect) {
           toast.success('Correct answer! 🎉');
         } else {
-          toast.error(`Incorrect! The correct answer is: ${question.options[question.correctAnswer]}`);
+          toast.error(`Incorrect! Correct: ${question.options[question.correctAnswer]}`);
         }
       } else {
         toast.info('Answer updated');
       }
-    } catch {
-      toast.error('Failed to submit answer');
+    } catch (err) {
+      console.error('Answer submission error:', err);
+      toast.error('Failed to submit answer. Please try again.');
+    } finally {
+      setSubmitting(null);
     }
   };
+
 
   const topicCounts = {};
   mcqTopics.forEach(t => {
@@ -73,7 +113,7 @@ export default function MCQ() {
 
   const correctCount = Object.keys(answers).filter(qid => {
     const q = mcqQuestions.find(m => m.id === parseInt(qid));
-    return q && answers[qid] === q.correctAnswer;
+    return q && answers[parseInt(qid)] === q.correctAnswer;
   }).length;
 
   return (
@@ -285,33 +325,36 @@ export default function MCQ() {
                           <div style={{ display: 'grid', gap: 10 }}>
                             {q.options.map((opt, idx) => {
                               const isSelected = selectedAnswer === idx;
+                              const isSubmittingThis = submitting === q.id;
                               return (
                                 <button
                                   key={idx}
                                   onClick={() => handleAnswerSubmit(q.id, idx)}
+                                  disabled={isSubmittingThis}
                                   style={{
                                     padding: '12px 16px',
                                     background: isSelected ? (isCorrect ? 'rgba(16, 185, 129, 0.15)' : 'rgba(239, 68, 68, 0.15)') : 'rgba(255, 255, 255, 0.03)',
                                     border: `1px solid ${isSelected ? (isCorrect ? 'var(--success)' : 'var(--danger)') : 'var(--border)'}`,
                                     borderRadius: 'var(--radius-sm)',
                                     color: isSelected ? (isCorrect ? 'var(--success)' : 'var(--danger)') : 'var(--text-primary)',
-                                    cursor: 'pointer',
+                                    cursor: isSubmittingThis ? 'not-allowed' : 'pointer',
                                     fontSize: '0.9rem',
                                     textAlign: 'left',
                                     transition: 'all var(--transition)',
-                                    fontWeight: isSelected ? '500' : '400'
+                                    fontWeight: isSelected ? '500' : '400',
+                                    opacity: isSubmittingThis ? 0.6 : 1,
                                   }}
                                   onMouseEnter={(e) => {
-                                    if (!isSelected) e.target.style.background = 'rgba(255, 255, 255, 0.05)';
+                                    if (!isSelected && !isSubmittingThis) e.target.style.background = 'rgba(255, 255, 255, 0.05)';
                                   }}
                                   onMouseLeave={(e) => {
-                                    if (!isSelected) e.target.style.background = 'rgba(255, 255, 255, 0.03)';
+                                    if (!isSelected && !isSubmittingThis) e.target.style.background = 'rgba(255, 255, 255, 0.03)';
                                   }}
                                 >
                                   <span style={{ display: 'inline-block', marginRight: 10, fontWeight: '600' }}>
                                     {String.fromCharCode(65 + idx)}.
                                   </span>
-                                  {opt}
+                                  {isSubmittingThis ? '⏳ Submitting...' : opt}
                                 </button>
                               );
                             })}

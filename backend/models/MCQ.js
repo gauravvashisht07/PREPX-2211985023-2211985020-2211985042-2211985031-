@@ -9,11 +9,14 @@ const mcqSchema = new mongoose.Schema({
     default: new Map()
   },
   mcqStats: {
-    DSA:  { attempted: { type: Number, default: 0 }, correct: { type: Number, default: 0 } },
-    OS:   { attempted: { type: Number, default: 0 }, correct: { type: Number, default: 0 } },
-    DBMS: { attempted: { type: Number, default: 0 }, correct: { type: Number, default: 0 } },
-    CN:   { attempted: { type: Number, default: 0 }, correct: { type: Number, default: 0 } },
-    HR:   { attempted: { type: Number, default: 0 }, correct: { type: Number, default: 0 } },
+    type: Object,
+    default: {
+      DSA:  { attempted: 0, correct: 0 },
+      OS:   { attempted: 0, correct: 0 },
+      DBMS: { attempted: 0, correct: 0 },
+      CN:   { attempted: 0, correct: 0 },
+      HR:   { attempted: 0, correct: 0 },
+    }
   },
   totalAttemptsCount: { type: Number, default: 0 },
   totalCorrectCount: { type: Number, default: 0 },
