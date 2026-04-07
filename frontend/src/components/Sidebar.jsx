@@ -1,70 +1,76 @@
-import { NavLink, useNavigate } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext.jsx';
-import {
-  LayoutDashboard, BookOpen, Mic2, FileText, BarChart2,
-  Star, Building2, StickyNote, CheckSquare, LogOut, X, ClipboardList
+import { NavLink } from 'react-router-dom';
+import { 
+  LayoutDashboard, BookOpen, Mic2, FileText, BarChart2, 
+  Star, Building2, StickyNote, CheckSquare, ChevronLeft, ChevronRight,
+  Target, Award
 } from 'lucide-react';
+import { useState } from 'react';
 
-const navItems = [
-  { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
-  { to: '/questions', icon: BookOpen, label: 'Question Bank' },
-  { to: '/mcq', icon: ClipboardList, label: 'MCQ Practice' },
-  { to: '/mock', icon: Mic2, label: 'Mock Interview' },
-  { to: '/daily', icon: Star, label: 'Daily Challenge' },
-  { to: '/progress', icon: BarChart2, label: 'My Progress' },
-  { to: '/companies', icon: Building2, label: 'Company-Wise' },
-  { to: '/resume', icon: FileText, label: 'Resume Builder' },
-  { to: '/notes', icon: StickyNote, label: 'Notes & Roadmap' },
-  { to: '/todos', icon: CheckSquare, label: 'To-Do Planner' },
+const sidebarGroups = [
+  {
+    title: 'Preparation',
+    items: [
+      { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
+      { to: '/questions', icon: BookOpen, label: 'Question Bank' },
+      { to: '/mcq', icon: Target, label: 'MCQ Practice' },
+      { to: '/mock', icon: Mic2, label: 'Mock Interview' },
+    ]
+  },
+  {
+    title: 'Tools',
+    items: [
+      { to: '/resume', icon: FileText, label: 'Resume Builder' },
+      { to: '/todos', icon: CheckSquare, label: 'To-Do Planner' },
+      { to: '/notes', icon: StickyNote, label: 'Notes & Roadmap' },
+    ]
+  },
+  {
+    title: 'Analytics',
+    items: [
+      { to: '/progress', icon: BarChart2, label: 'My Progress' },
+      { to: '/daily', icon: Star, label: 'Daily Challenge' },
+      { to: '/companies', icon: Building2, label: 'Company-Wise' },
+    ]
+  }
 ];
 
-export default function Sidebar({ open, onClose }) {
-  const { user, logout } = useAuth();
-  const navigate = useNavigate();
-
-  const handleLogout = () => { logout(); navigate('/login'); onClose?.(); };
-  const initials = user?.name?.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase() || '?';
-
+export default function Sidebar({ collapsed, setCollapsed }) {
   return (
-    <>
-      {open && <div className="sidebar-overlay" onClick={onClose} />}
-      <nav className={`sidebar ${open ? 'open' : ''}`}>
-        <div className="sidebar-logo">
-          <div className="sidebar-logo-icon">P</div>
-          <span className="sidebar-logo-text gradient-text">Prepx</span>
-          {/* ✅ Fixed: close button now visible on mobile */}
-          <button onClick={onClose} className="sidebar-close-btn" aria-label="Close sidebar"
-            style={{ marginLeft: 'auto', background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}>
-            <X size={18} />
-          </button>
-        </div>
+    <aside className={`sidebar-container ${collapsed ? 'collapsed' : 'expanded'}`} style={{ width: collapsed ? 'var(--sidebar-collapsed-w)' : 'var(--sidebar-w)' }}>
+      <div className="sidebar-header">
+        <div className="logo-box">P</div>
+        {!collapsed && <span className="logo-text">PREPX</span>}
+      </div>
 
-        <div className="sidebar-nav">
-          <div className="nav-section-title">Main Menu</div>
-          {navItems.map(({ to, icon: Icon, label }) => (
-            <NavLink
-              key={to} to={to}
-              className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}
-              onClick={onClose}
-            >
-              <Icon size={18} /> {label}
-            </NavLink>
-          ))}
-        </div>
-
-        <div className="sidebar-footer">
-          <div className="user-card-mini">
-            <div className="user-avatar">{initials}</div>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div className="user-name" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{user?.name}</div>
-              <div className="user-email" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{user?.email}</div>
-            </div>
-            <button onClick={handleLogout} title="Logout" style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: '4px', borderRadius: '6px', flexShrink: 0 }}>
-              <LogOut size={16} />
-            </button>
+      <nav className="nav-list custom-scrollbar">
+        {sidebarGroups.map((group, idx) => (
+          <div key={idx} style={{ marginBottom: '24px' }}>
+            {!collapsed && <div className="nav-section-title" style={{ fontSize: '0.7rem', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: '12px', paddingLeft: '14px', letterSpacing: '1px', fontWeight: 700 }}>{group.title}</div>}
+            {group.items.map(({ to, icon: Icon, label }) => (
+              <NavLink
+                key={to}
+                to={to}
+                className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
+                title={collapsed ? label : ''}
+              >
+                <Icon size={20} className="nav-icon" strokeWidth={collapsed ? 2 : 1.5} />
+                {!collapsed && <span>{label}</span>}
+              </NavLink>
+            ))}
           </div>
-        </div>
+        ))}
       </nav>
-    </>
+
+      <div className="sidebar-footer" style={{ marginTop: 'auto', padding: '16px', borderTop: '1px solid var(--border)' }}>
+        <button 
+          onClick={() => setCollapsed(!collapsed)}
+          className="btn-ghost"
+          style={{ width: '100%', justifyContent: collapsed ? 'center' : 'space-between', padding: '8px', border: 'none', background: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center' }}
+        >
+          {!collapsed && <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>Collapse</span>}
+          {collapsed ? <ChevronRight size={20} color="var(--text-secondary)" /> : <ChevronLeft size={20} color="var(--text-secondary)" />}
+        </button>
+      </div>
+    </aside>
   );
 }

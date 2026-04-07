@@ -31,8 +31,13 @@ export function AuthProvider({ children }) {
     setUser(null);
   };
 
+  const updateUserProfile = (updatedUser) => {
+    localStorage.setItem('prepx_user', JSON.stringify(updatedUser));
+    setUser(updatedUser);
+  };
+
   return (
-    <AuthContext.Provider value={{ user, login, signup, logout }}>
+    <AuthContext.Provider value={{ user, login, signup, logout, updateUserProfile }}>
       {children}
     </AuthContext.Provider>
   );

@@ -2,104 +2,198 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
 import api from '../api/axios.js';
-import { dailyChallenges } from '../data/dailyChallenges.js';
 import { StatCardSkeleton } from '../components/Skeleton.jsx';
-import { BookOpen, Flame, Target, Award } from 'lucide-react';
+import { BookOpen, Flame, Target, Award, ArrowRight, Zap, Code2, Users, Trophy, BarChart2, Star } from 'lucide-react';
+import { motion } from 'framer-motion';
 
 const features = [
-  { to: '/questions', icon: '📚', title: 'Question Bank', desc: '45+ curated questions across DSA, OS, DBMS, CN & HR', color: '#8b5cf6' },
-  { to: '/mcq', icon: '📋', title: 'MCQ Practice', desc: '36 MCQs across all topics with instant feedback', color: '#3b82f6' },
-  { to: '/mock', icon: '🎯', title: 'Mock Interview', desc: 'Timed interview sessions with self-evaluation', color: '#06b6d4' },
-  { to: '/daily', icon: '⚡', title: 'Daily Challenge', desc: 'A fresh challenge every day to stay sharp', color: '#f59e0b' },
-  { to: '/progress', icon: '📈', title: 'My Progress', desc: 'Streaks, solved questions & topic coverage', color: '#10b981' },
-  { to: '/companies', icon: '🏢', title: 'Company-Wise', desc: 'Questions from Amazon, Google, TCS & more', color: '#f472b6' },
-  { to: '/resume', icon: '📄', title: 'Resume Builder', desc: 'Build and export your resume as PDF', color: '#fb923c' },
-  { to: '/notes', icon: '📝', title: 'Notes & Roadmap', desc: 'Quick revision notes & structured learning paths', color: '#a78bfa' },
-  { to: '/todos', icon: '✅', title: 'To-Do Planner', desc: 'Organise your daily prep tasks & schedule', color: '#34d399' },
+  { to: '/questions', title: 'Question Bank', desc: '45+ curated technical questions across core CS fundamentals.', icon: BookOpen, color: '#a78bfa' },
+  { to: '/mcq', title: 'MCQ Practice', desc: 'Mock tests with instant detailed feedback and explanations.', icon: Target, color: '#06b6d4' },
+  { to: '/mock', title: 'Mock Interview', desc: 'Professional real-time interview simulations.', icon: Users, color: '#10b981' },
+  { to: '/daily', title: 'Daily Challenge', desc: 'Stay sharp with daily algorithm challenges.', icon: Zap, color: '#f59e0b' },
+  { to: '/resume', title: 'Resume Builder', desc: 'Build ATS-optimized resumes in minutes.', icon: Code2, color: '#fb7185' },
+  { to: '/progress', title: 'Analytics', desc: 'Track your growth and identify weak areas.', icon: BarChart2, color: '#38bdf8' },
 ];
+
+const containerVariants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.1
+    }
+  }
+};
+
+const itemVariants = {
+  hidden: { opacity: 0, y: 20 },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.5, ease: 'easeOut' } }
+};
 
 export default function Dashboard() {
   const { user } = useAuth();
   const [progress, setProgress] = useState(null);
-  const [daily, setDaily] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const c1 = new AbortController(), c2 = new AbortController();
-    Promise.all([
-      api.get('/progress', { signal: c1.signal }).then(r => setProgress(r.data)),
-      api.get('/daily/challenge', { signal: c2.signal }).then(r => setDaily(r.data)),
-    ]).catch(err => { if (err.name !== 'CanceledError') {} })
+    const controller = new AbortController();
+    api.get('/progress', { signal: controller.signal })
+      .then(r => setProgress(r.data))
+      .catch(() => {})
       .finally(() => setLoading(false));
-    return () => { c1.abort(); c2.abort(); };
+    return () => controller.abort();
   }, []);
 
-  const today = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
   const solved = progress?.solvedQuestions?.length || 0;
   const streak = progress?.streak || 0;
-  const topics = progress ? Object.values(progress.topicStats || {}).filter(t => t.solved > 0).length : 0;
-  const todayChallenge = daily ? dailyChallenges[daily.challengeIndex] : null;
-
-  const greeting = () => {
-    const h = new Date().getHours();
-    if (h < 12) return 'Good morning';
-    if (h < 17) return 'Good afternoon';
-    return 'Good evening';
-  };
 
   return (
-    <div style={{ animation: 'fadeInUp 0.4s ease' }}>
-      <div style={{ background: 'linear-gradient(135deg, rgba(139,92,246,0.2), rgba(6,182,212,0.12))', border: '1px solid rgba(139,92,246,0.25)', borderRadius: 'var(--radius-lg)', padding: '28px 32px', marginBottom: 28, position: 'relative', overflow: 'hidden' }}>
-        <div style={{ position: 'absolute', top: -30, right: -20, fontSize: '8rem', opacity: 0.07 }}>🎓</div>
-        <div style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginBottom: 6 }}>{today}</div>
-        <h1 style={{ fontSize: '1.8rem', marginBottom: 8 }}>
-          {greeting()}, <span className="gradient-text">{user?.name?.split(' ')[0] || 'Student'}!</span> 👋
-        </h1>
-        <p style={{ color: 'var(--text-secondary)', fontSize: '0.95rem' }}>Ready to ace your placements? Let's keep the streak going!</p>
-      </div>
-
-      <div className="stats-grid">
-        {loading ? [1,2,3,4].map(i => <StatCardSkeleton key={i} />) : [
-          { icon: BookOpen, label: 'Questions Solved', value: solved, color: '#8b5cf6', bg: 'rgba(139,92,246,0.15)' },
-          { icon: Flame, label: 'Current Streak', value: `${streak}d`, color: '#f59e0b', bg: 'rgba(245,158,11,0.15)' },
-          { icon: Target, label: 'Topics Covered', value: `${topics}/5`, color: '#10b981', bg: 'rgba(16,185,129,0.15)' },
-          { icon: Award, label: 'Best Streak', value: `${progress?.maxStreak || 0}d`, color: '#f472b6', bg: 'rgba(244,114,182,0.15)' },
-        ].map(({ icon: Icon, label, value, color, bg }) => (
-          <div key={label} className="stat-card">
-            <div className="stat-icon" style={{ background: bg }}><Icon size={22} color={color} /></div>
-            <div><div className="stat-value" style={{ color }}>{value}</div><div className="stat-label">{label}</div></div>
+    <div className="dashboard-container">
+      {/* Hero Section */}
+      <section className="hero-section" style={{ minHeight: '60vh', padding: '60px 40px' }}>
+        <motion.div 
+          className="hero-content"
+          initial={{ opacity: 0, x: -30 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.8 }}
+        >
+          <span className="hero-tagline">Achieve Technical Excellence</span>
+          <h1 className="hero-title">
+            Master Your <br />
+            <span className="gradient-text">Engineering</span> <br />
+            Interviews.
+          </h1>
+          <p className="hero-desc">
+            Welcome back, <span style={{ color: 'var(--text-primary)', fontWeight: 700 }}>{user?.name?.split(' ')[0] || 'User'}</span>. 
+            Prepx is your high-performance studio for mastering technical interviews with precision and speed.
+          </p>
+          <div className="flex gap-16" style={{ marginTop: '20px' }}>
+            <Link to="/questions" className="btn btn-primary btn-glow btn-lg" style={{ borderRadius: '12px' }}>
+              Explore Questions <ArrowRight size={18} />
+            </Link>
+            <Link to="/mock" className="btn btn-ghost btn-lg" style={{ borderRadius: '12px' }}>
+              Practice Mock
+            </Link>
           </div>
-        ))}
-      </div>
+        </motion.div>
 
-      {todayChallenge && (
-        <div style={{ background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.25)', borderRadius: 'var(--radius)', padding: '20px 24px', marginBottom: 28, display: 'flex', alignItems: 'center', gap: 20, flexWrap: 'wrap' }}>
-          <div style={{ fontSize: '2rem' }}>⚡</div>
-          <div style={{ flex: 1, minWidth: 200 }}>
-            <div style={{ color: '#f59e0b', fontWeight: 700, fontSize: '0.8rem', letterSpacing: '0.05em', textTransform: 'uppercase', marginBottom: 4 }}>Today's Daily Challenge</div>
-            <div style={{ fontWeight: 700, fontSize: '1rem', marginBottom: 4 }}>{todayChallenge.title}</div>
-            <div style={{ display: 'flex', gap: 8 }}>
-              <span className={`badge badge-${todayChallenge.difficulty.toLowerCase()}`}>{todayChallenge.difficulty}</span>
-              <span className="badge badge-primary">{todayChallenge.topic}</span>
-              {daily?.completed && <span className="badge" style={{ background: 'rgba(16,185,129,0.15)', color: '#10b981', border: '1px solid rgba(16,185,129,0.3)' }}>✓ Done</span>}
+        {/* Hero Illustration (CSS/SVG) */}
+        <div className="hidden lg:flex" style={{ flex: 1, justifyContent: 'center', position: 'relative' }}>
+          <motion.div 
+             animate={{ rotate: 360 }}
+             transition={{ duration: 20, repeat: Infinity, ease: 'linear' }}
+             style={{ width: '400px', height: '400px', border: '1px dashed rgba(124, 58, 237, 0.2)', borderRadius: '50%', position: 'absolute' }}
+          />
+          <motion.div 
+             animate={{ rotate: -360 }}
+             transition={{ duration: 30, repeat: Infinity, ease: 'linear' }}
+             style={{ width: '320px', height: '320px', border: '1px solid rgba(6, 182, 212, 0.1)', borderRadius: '50%', position: 'absolute' }}
+          />
+          <motion.div 
+            initial={{ scale: 0.8, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ duration: 1 }}
+            className="glass-strong"
+            style={{ width: '280px', height: '320px', borderRadius: '24px', display: 'flex', flexDirection: 'column', padding: '32px', position: 'relative', zIndex: 1, gap: '20px' }}
+          >
+            <div style={{ height: '40px', width: '70%', background: 'rgba(255,255,255,0.05)', borderRadius: '8px' }} />
+            <div style={{ height: '12px', width: '100%', background: 'rgba(255,255,255,0.03)', borderRadius: '4px' }} />
+            <div style={{ height: '12px', width: '100%', background: 'rgba(255,255,255,0.03)', borderRadius: '4px' }} />
+            <div style={{ height: '12px', width: '60%', background: 'rgba(255,255,255,0.03)', borderRadius: '4px' }} />
+            <div style={{ marginTop: 'auto', display: 'flex', gap: '8px' }}>
+                <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: 'var(--primary)' }} />
+                <div style={{ flex: 1 }}>
+                    <div style={{ height: '12px', width: '80%', background: 'rgba(255,255,255,0.05)', borderRadius: '4px', marginBottom: '8px' }} />
+                    <div style={{ height: '8px', width: '40%', background: 'rgba(255,255,255,0.03)', borderRadius: '4px' }} />
+                </div>
             </div>
-          </div>
-          <Link to="/daily" className="btn btn-ghost btn-sm">Solve Now →</Link>
-        </div>
-      )}
+          </motion.div>
 
-      <div className="section-header">
-        <h2 className="section-title" style={{ fontSize: '1.3rem' }}>All Features</h2>
-      </div>
-      <div className="feature-grid">
-        {features.map(f => (
-          <Link key={f.to} to={f.to} className="feature-card" style={{ textDecoration: 'none' }}>
-            <div style={{ fontSize: '2rem', marginBottom: 12 }}>{f.icon}</div>
-            <div className="feature-title" style={{ color: f.color }}>{f.title}</div>
-            <div className="feature-desc">{f.desc}</div>
-          </Link>
-        ))}
-      </div>
+          <div style={{ position: 'absolute', top: '-10px', right: '40px', zIndex: 2 }}>
+            <motion.div 
+               animate={{ y: [0, -15, 0] }} 
+               transition={{ duration: 4, repeat: Infinity }}
+               className="glass" style={{ padding: '12px 20px', borderRadius: '12px', display: 'flex', alignItems: 'center', gap: '10px', border: '1px solid rgba(16, 185, 129, 0.4)' }}
+            >
+              <Award size={18} color="#10b981" />
+              <span style={{ fontSize: '0.85rem', fontWeight: 700 }}>84% Progress</span>
+            </motion.div>
+          </div>
+        </div>
+      </section>
+
+      {/* Stats Section */}
+      <section style={{ padding: '0 40px 60px' }}>
+        <motion.div 
+          className="stats-grid" 
+          style={{ gridTemplateColumns: 'repeat(4, 1fr)', gap: '24px' }}
+          variants={containerVariants}
+          initial="hidden"
+          animate="visible"
+        >
+          {[
+            { label: 'Total Solved', value: solved, icon: Trophy, color: '#f59e0b' },
+            { label: 'Current Streak', value: `${streak}d`, icon: Flame, color: '#ef4444' },
+            { label: 'Global Rank', value: '#12', icon: Target, color: '#7c3aed' },
+            { label: 'Accuracy Rate', value: '84%', icon: Star, color: '#06b6d4' },
+          ].map((stat, i) => (
+            <motion.div 
+              key={i} 
+              variants={itemVariants}
+              className="glass" 
+              style={{ padding: '24px', display: 'flex', alignItems: 'center', gap: '20px' }}
+            >
+              <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: `${stat.color}15`, display: 'flex', alignItems: 'center', justifyCenter: 'center', color: stat.color, flexShrink: 0 }}>
+                <stat.icon size={24} style={{ margin: '0 auto' }} />
+              </div>
+              <div>
+                <div style={{ fontSize: '1.8rem', fontWeight: 800, lineHeight: 1.1 }}>{stat.value}</div>
+                <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', marginTop: '4px', letterSpacing: '0.5px' }}>{stat.label}</div>
+              </div>
+            </motion.div>
+          ))}
+        </motion.div>
+      </section>
+
+      {/* Feature Section */}
+      <section style={{ padding: '40px' }}>
+        <div style={{ marginBottom: '32px' }}>
+            <h2 style={{ fontSize: '1.8rem', fontWeight: 800 }}>Explore Studio</h2>
+            <p style={{ color: 'var(--text-muted)' }}>Curated paths to master every aspect of your preparation.</p>
+        </div>
+
+        <motion.div 
+          className="feature-grid"
+          style={{ padding: 0 }}
+          variants={containerVariants}
+          initial="hidden"
+          animate="visible"
+        >
+          {features.map((f, i) => (
+            <motion.div key={i} variants={itemVariants}>
+                <Link to={f.to} className="feature-card glass" style={{ textDecoration: 'none', color: 'inherit', display: 'block' }}>
+                    <div className="feature-icon-wrapper" style={{ background: `${f.color}15`, color: f.color }}>
+                        <f.icon size={24} />
+                    </div>
+                    <h3 style={{ fontSize: '1.1rem', marginBottom: '12px' }}>{f.title}</h3>
+                    <p style={{ fontSize: '0.9rem', color: 'var(--text-muted)', lineHeight: 1.6 }}>{f.desc}</p>
+                    
+                    <div style={{ marginTop: '24px', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.85rem', fontWeight: 700, color: 'var(--accent)', opacity: 0, transform: 'translateX(-10px)', transition: '0.3s' }} className="explore-btn">
+                        Explore <ArrowRight size={14} />
+                    </div>
+                </Link>
+            </motion.div>
+          ))}
+        </motion.div>
+      </section>
+
+      <style>{`
+        .feature-card:hover .explore-btn {
+            opacity: 1;
+            transform: translateX(0);
+        }
+      `}</style>
     </div>
   );
 }
+

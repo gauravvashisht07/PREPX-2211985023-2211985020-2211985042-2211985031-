@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react';
 import api from '../api/axios.js';
 import { useToast } from '../context/ToastContext.jsx';
 import { StatCardSkeleton, Skeleton } from '../components/Skeleton.jsx';
-import { Flame, Trophy, BookOpen, Target } from 'lucide-react';
+import { Flame, Trophy, BookOpen, Target, BarChart3, TrendingUp, Calendar, Zap } from 'lucide-react';
+import { motion } from 'framer-motion';
 
 export default function Progress() {
   const toast = useToast();
@@ -23,14 +24,16 @@ export default function Progress() {
   });
 
   if (loading) return (
-    <div style={{ animation: 'fadeInUp 0.4s ease' }}>
+    <div className="animate-fade-up">
       <div className="section-header">
         <h1 className="section-title">My Progress</h1>
       </div>
-      <div className="stats-grid" style={{ marginBottom: 28 }}>{[1,2,3,4].map(i => <StatCardSkeleton key={i} />)}</div>
+      <div className="stats-grid" style={{ marginBottom: 28, gridTemplateColumns: 'repeat(4, 1fr)', gap: '24px' }}>
+        {[1,2,3,4].map(i => <StatCardSkeleton key={i} />)}
+      </div>
       <div className="glass" style={{ padding: 24, marginBottom: 24 }}>
         <Skeleton height={24} width="30%" style={{ marginBottom: 20 }} />
-        {[1,2,3,4,5].map(i => <div key={i} style={{ marginBottom: 16 }}><Skeleton height={14} width="80%" style={{ marginBottom: 8 }} /><Skeleton height={8} /></div>)}
+        {[1,2,3,4,5].map(i => <div key={i} style={{ marginBottom: 20 }}><Skeleton height={14} width="80%" style={{ marginBottom: 8 }} /><Skeleton height={12} borderRadius={6} /></div>)}
       </div>
     </div>
   );
@@ -43,69 +46,144 @@ export default function Progress() {
   const activity = new Set(progress.activityLog || []);
   const topicList = Object.entries(progress.topicStats || {});
 
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: { opacity: 1, transition: { staggerChildren: 0.1 } }
+  };
+
+  const itemVariants = {
+    hidden: { opacity: 0, y: 20 },
+    visible: { opacity: 1, y: 0 }
+  };
+
   return (
-    <div style={{ animation: 'fadeInUp 0.4s ease' }}>
-      <div className="section-header">
-        <h1 className="section-title">My Progress</h1>
-        <p className="section-sub">Track your preparation journey</p>
+    <div className="animate-fade-up">
+      <div className="section-header" style={{ marginBottom: '40px' }}>
+        <h1 className="section-title">Preparation Analytics</h1>
+        <p className="section-sub">A deep dive into your technical learning journey.</p>
       </div>
 
-      <div className="stats-grid" style={{ marginBottom: 28 }}>
+      <motion.div 
+        className="stats-grid" 
+        style={{ marginBottom: 32, gridTemplateColumns: 'repeat(4, 1fr)', gap: '24px' }}
+        variants={containerVariants}
+        initial="hidden"
+        animate="visible"
+      >
         {[
-          { icon: BookOpen, label: 'Total Solved', value: `${solved}/${total}`, color: '#8b5cf6', bg: 'rgba(139,92,246,0.15)' },
-          { icon: Flame, label: 'Current Streak', value: `${streak} days`, color: '#f59e0b', bg: 'rgba(245,158,11,0.15)' },
-          { icon: Trophy, label: 'Best Streak', value: `${progress.maxStreak || 0} days`, color: '#10b981', bg: 'rgba(16,185,129,0.15)' },
-          { icon: Target, label: 'Daily Challenges', value: progress.completedDailyChallenges?.length || 0, color: '#f472b6', bg: 'rgba(244,114,182,0.15)' },
-        ].map(({ icon: Icon, label, value, color, bg }) => (
-          <div key={label} className="stat-card">
-            <div className="stat-icon" style={{ background: bg }}><Icon size={22} color={color} /></div>
-            <div><div className="stat-value" style={{ color }}>{value}</div><div className="stat-label">{label}</div></div>
-          </div>
-        ))}
-      </div>
-
-      <div className="glass" style={{ padding: 24, marginBottom: 24 }}>
-        <h2 style={{ fontSize: '1.1rem', marginBottom: 20 }}>📊 Topic Progress</h2>
-        {topicList.map(([topic, stats]) => {
-          const pct = stats.total > 0 ? Math.round((stats.solved / stats.total) * 100) : 0;
-          const colors = { DSA: '#8b5cf6', OS: '#06b6d4', DBMS: '#fb923c', CN: '#f472b6', HR: '#34d399' };
-          return (
-            <div key={topic} style={{ marginBottom: 16 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6, fontSize: '0.9rem' }}>
-                <span style={{ fontWeight: 600 }}>{topic}</span>
-                <span style={{ color: 'var(--text-secondary)' }}>{stats.solved}/{stats.total} · <span style={{ color: colors[topic], fontWeight: 700 }}>{pct}%</span></span>
-              </div>
-              <div className="progress-bar-track">
-                <div className="progress-bar-fill" style={{ width: `${pct}%`, background: `linear-gradient(90deg, ${colors[topic]}, ${colors[topic]}88)` }} />
-              </div>
+          { icon: Trophy, label: 'Questions Solved', value: `${solved}/${total || 45}`, color: '#a78bfa', bg: 'rgba(124, 58, 237, 0.1)' },
+          { icon: Flame, label: 'Current Streak', value: `${streak} days`, color: '#f87171', bg: 'rgba(239, 68, 68, 0.1)' },
+          { icon: TrendingUp, label: 'Preparation Score', value: '780', color: '#10b981', bg: 'rgba(16, 185, 129, 0.1)' },
+          { icon: Target, label: 'Daily Goals', value: progress.completedDailyChallenges?.length || 0, color: '#06b6d4', bg: 'rgba(6, 182, 212, 0.1)' },
+        ].map(({ icon: Icon, label, value, color, bg }, i) => (
+          <motion.div key={i} variants={itemVariants} className="glass" style={{ padding: '24px', display: 'flex', alignItems: 'center', gap: '20px', borderBottom: `2px solid ${color}33` }}>
+            <div style={{ width: '52px', height: '52px', borderRadius: '14px', background: bg, display: 'flex', alignItems: 'center', justifyCenter: 'center', color: color }}>
+              <Icon size={24} style={{ margin: '0 auto' }} />
             </div>
-          );
-        })}
+            <div>
+              <div style={{ fontSize: '1.6rem', fontWeight: 800, color: 'var(--text-primary)' }}>{value}</div>
+              <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>{label}</div>
+            </div>
+          </motion.div>
+        ))}
+      </motion.div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '32px', marginBottom: '32px' }}>
+        <motion.div 
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.3 }}
+            className="glass" style={{ padding: '32px' }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '24px' }}>
+            <BarChart3 size={20} color="var(--accent)" />
+            <h2 style={{ fontSize: '1.2rem', fontWeight: 800 }}>Topic Mastery</h2>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+            {topicList.map(([topic, stats]) => {
+              const pct = stats.total > 0 ? Math.round((stats.solved / stats.total) * 100) : 0;
+              const colors = { DSA: '#a78bfa', OS: '#38bdf8', DBMS: '#fb923c', CN: '#f472b6', HR: '#10b981' };
+              const color = colors[topic] || '#94a3b8';
+              return (
+                <div key={topic}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px', fontSize: '0.9rem' }}>
+                    <span style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{topic}</span>
+                    <span style={{ color: color, fontWeight: 800 }}>{pct}% <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem', fontWeight: 500 }}>({stats.solved}/{stats.total})</span></span>
+                  </div>
+                  <div style={{ height: '8px', background: 'rgba(255,255,255,0.03)', borderRadius: '99px', overflow: 'hidden' }}>
+                    <motion.div 
+                        initial={{ width: 0 }} 
+                        animate={{ width: `${pct}%` }} 
+                        transition={{ duration: 1, ease: 'easeOut' }}
+                        style={{ height: '100%', background: `linear-gradient(to right, ${color}cc, ${color})`, borderRadius: '99px' }} 
+                    />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </motion.div>
+
+        <motion.div 
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.4 }}
+            className="glass" style={{ padding: '32px' }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '24px' }}>
+            <Calendar size={20} color="var(--secondary)" />
+            <h2 style={{ fontSize: '1.2rem', fontWeight: 800 }}>Consistency Map</h2>
+          </div>
+          <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '24px' }}>Your activity over the last 30 days. Stay consistent to boost your preparation score.</p>
+          
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '12px' }}>
+            {days.map(d => {
+              const isActive = activity.has(d);
+              const isToday = d === new Date().toISOString().slice(0, 10);
+              return (
+                <motion.div 
+                  key={d} 
+                  whileHover={{ scale: 1.1 }}
+                  title={d} 
+                  style={{
+                    aspectRatio: '1', borderRadius: '8px',
+                    background: isToday ? 'rgba(167, 139, 250, 0.4)' : isActive ? 'var(--primary)' : 'rgba(255,255,255,0.03)',
+                    border: isToday ? '2px solid var(--accent)' : isActive ? 'none' : '1px solid rgba(255,255,255,0.03)',
+                    boxShadow: isActive ? '0 0 15px rgba(124, 58, 237, 0.3)' : 'none',
+                    cursor: 'pointer',
+                    transition: '0.3s'
+                  }} 
+                />
+              );
+            })}
+          </div>
+          
+          <div style={{ marginTop: '32px', display: 'flex', justifyContent: 'center', gap: '24px', fontSize: '0.75rem', fontWeight: 600 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><div style={{ width: '12px', height: '12px', background: 'var(--primary)', borderRadius: '3px' }} /> Solved</div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><div style={{ width: '12px', height: '12px', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '3px' }} /> Inactive</div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><div style={{ width: '12px', height: '12px', background: 'rgba(167, 139, 250, 0.4)', border: '1px solid var(--accent)', borderRadius: '3px' }} /> Today</div>
+          </div>
+        </motion.div>
       </div>
 
-      <div className="glass" style={{ padding: 24 }}>
-        <h2 style={{ fontSize: '1.1rem', marginBottom: 16 }}>🗓️ Activity — Last 30 Days</h2>
-        <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
-          {days.map(d => {
-            const isActive = activity.has(d);
-            const isToday = d === new Date().toISOString().slice(0, 10);
-            return (
-              <div key={d} title={d} style={{
-                width: 28, height: 28, borderRadius: 6,
-                background: isToday ? 'rgba(139,92,246,0.6)' : isActive ? 'rgba(139,92,246,0.9)' : 'rgba(255,255,255,0.05)',
-                border: isToday ? '2px solid #8b5cf6' : '1px solid rgba(255,255,255,0.05)',
-                flexShrink: 0, cursor: 'default',
-                transition: 'transform 0.2s',
-              }} />
-            );
-          })}
+      <motion.div 
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.5 }}
+        className="glass-strong" 
+        style={{ padding: '32px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '40px' }}
+      >
+        <div style={{ flex: 1 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px' }}>
+                <Zap size={20} color="#f59e0b" fill="#f59e0b" />
+                <h3 style={{ fontSize: '1.2rem', fontWeight: 800 }}>Elite Tip</h3>
+            </div>
+            <p style={{ color: 'var(--text-secondary)', fontSize: '0.95rem', lineHeight: 1.6 }}>
+                Focus more on <span style={{ color: 'var(--primary-light)', fontWeight: 700 }}>OS Fundamentals</span> this week. Strengthening your core OS concepts through the question bank will significantly improve your overall interview readiness.
+            </p>
         </div>
-        <div style={{ marginTop: 12, display: 'flex', gap: 16, fontSize: '0.78rem', color: 'var(--text-muted)' }}>
-          <span style={{ color: '#8b5cf6' }}>■ Active day</span>
-          <span>■ No activity</span>
-          <span style={{ color: '#8b5cf6', opacity: 0.6 }}>■ Today</span>
-        </div>
-      </div>
+        <button className="btn btn-primary" style={{ padding: '14px 28px', borderRadius: '12px' }}>Personalized Roadmap</button>
+      </motion.div>
     </div>
   );
 }

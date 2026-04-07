@@ -1,6 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
+import { Link } from 'react-router-dom';
 import { questions, topics } from '../data/questions.js';
-import { Play, SkipForward, CheckCircle, RefreshCw } from 'lucide-react';
+import { Play, SkipForward, CheckCircle, RefreshCw, Timer, Settings2, Trophy, BarChart3, ChevronRight, BookOpen } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 
 function shuffle(arr) { return [...arr].sort(() => Math.random() - 0.5); }
 
@@ -13,15 +15,14 @@ export default function MockInterview() {
   const [revealed, setRevealed] = useState(false);
   const [ratings, setRatings] = useState({});
   const [timeLeft, setTimeLeft] = useState(120);
+  const [userAnswers, setUserAnswers] = useState({});
 
-  // ✅ Fix: useRef instead of useState to avoid re-render on timer ID change
   const timerRef = useRef(null);
 
   const stopTimer = () => {
     if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; }
   };
 
-  // ✅ Fix: cleanup timer on unmount to prevent memory leak
   useEffect(() => () => stopTimer(), []);
 
   const startTimer = (sec) => {
@@ -54,155 +55,310 @@ export default function MockInterview() {
     return vals.length ? (vals.reduce((a, b) => a + b, 0) / vals.length).toFixed(1) : '—';
   };
 
+
+
   const timerPct = (timeLeft / 120) * 100;
-  const timerColor = timeLeft > 60 ? '#10b981' : timeLeft > 30 ? '#f59e0b' : '#ef4444';
+  const timerColor = timeLeft > 60 ? 'var(--success)' : timeLeft > 30 ? 'var(--warning)' : 'var(--danger)';
+
+  const containerVariants = {
+    initial: { opacity: 0, y: 20 },
+    animate: { opacity: 1, y: 0 },
+    exit: { opacity: 0, y: -20 }
+  };
 
   if (phase === 'setup') return (
-    <div style={{ animation: 'fadeInUp 0.4s ease' }}>
-      <div className="section-header">
-        <h1 className="section-title">Mock Interview</h1>
-        <p className="section-sub">Simulate a real interview with timed questions and self-evaluation.</p>
+    <motion.div 
+      variants={containerVariants}
+      initial="initial"
+      animate="animate"
+      exit="exit"
+      className="animate-fade-up"
+    >
+      <div className="section-header" style={{ marginBottom: '40px' }}>
+        <h1 className="section-title">Mock Interview Studio</h1>
+        <p className="section-sub">Simulate high-pressure technical interviews with real-time feedback.</p>
       </div>
-      <div className="mock-setup">
-        <div className="glass" style={{ padding: 32 }}>
-          <h2 style={{ marginBottom: 24, fontSize: '1.2rem' }}>⚙️ Configure Your Session</h2>
-          <div className="form-group">
-            <label className="label">Topic</label>
-            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-              {topics.map(t => (
-                <button key={t} className={`filter-chip ${selTopic === t ? 'active' : ''}`} onClick={() => setSelTopic(t)}>{t}</button>
-              ))}
+
+      <div className="mock-layout" style={{ maxWidth: '800px', margin: '0 auto' }}>
+        <div className="glass-strong" style={{ padding: '40px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '32px' }}>
+            <div className="feature-icon-wrapper" style={{ marginBottom: 0, width: '40px', height: '40px' }}>
+               <Settings2 size={20} />
+            </div>
+            <h2 style={{ fontSize: '1.4rem', fontWeight: 800 }}>Session Configuration</h2>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '32px' }}>
+            <div>
+              <label className="label" style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '16px', letterSpacing: '1px', display: 'block' }}>
+                Select Focus Topic
+              </label>
+              <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+                {topics.map(t => (
+                  <button 
+                    key={t} 
+                    className={`btn ${selTopic === t ? 'btn-primary' : 'btn-ghost'}`} 
+                    onClick={() => setSelTopic(t)}
+                    style={{ padding: '8px 16px', borderRadius: '10px', fontSize: '0.85rem' }}
+                  >
+                    {t}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <label className="label" style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '16px', letterSpacing: '1px', display: 'block' }}>
+                Question Count
+              </label>
+              <div style={{ display: 'flex', gap: '10px' }}>
+                {[3, 5, 10].map(n => (
+                  <button 
+                    key={n} 
+                    className={`btn ${count === n ? 'btn-primary' : 'btn-ghost'}`} 
+                    onClick={() => setCount(n)}
+                    style={{ flex: 1, padding: '10px', borderRadius: '10px', fontSize: '0.85rem' }}
+                  >
+                    {n} Questions
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
-          <div className="form-group" style={{ marginTop: 20 }}>
-            <label className="label">Number of Questions</label>
-            <div style={{ display: 'flex', gap: 8 }}>
-              {[5, 10, 15].map(n => (
-                <button key={n} className={`filter-chip ${count === n ? 'active' : ''}`} onClick={() => setCount(n)}>{n} Questions</button>
-              ))}
+
+          <div className="glass" style={{ margin: '40px 0', padding: '24px', display: 'flex', justifyContent: 'space-around', alignItems: 'center' }}>
+            <div style={{ textAlign: 'center' }}>
+                <Timer size={24} color="var(--accent)" style={{ marginBottom: '8px' }} />
+                <div style={{ fontSize: '0.8rem', fontWeight: 700 }}>2:00 / Q</div>
+            </div>
+            <div style={{ width: '1px', height: '30px', background: 'var(--border)' }} />
+
+            <div style={{ textAlign: 'center' }}>
+                <CheckCircle size={24} color="var(--success)" style={{ marginBottom: '8px' }} />
+                <div style={{ fontSize: '0.8rem', fontWeight: 700 }}>Self-Rating</div>
             </div>
           </div>
-          <div style={{ background: 'rgba(139,92,246,0.08)', border: '1px solid rgba(139,92,246,0.2)', borderRadius: 12, padding: 16, margin: '24px 0', fontSize: '0.87rem', color: 'var(--text-secondary)' }}>
-            <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
-              <span>⏱ 2 min per question</span>
-              <span>⭐ Self-rate 1–5 after reveal</span>
-              <span>📊 Score summary at end</span>
-            </div>
-          </div>
-          <button id="mock-start" className="btn btn-primary btn-lg w-full" style={{ justifyContent: 'center' }} onClick={start}>
-            <Play size={18} /> Start Mock Interview
+
+          <button id="mock-start" className="btn btn-primary btn-glow btn-lg w-full" onClick={start} style={{ borderRadius: '14px', height: '56px', fontSize: '1.1rem' }}>
+            <Play size={20} fill="currentColor" /> Initialize Session
           </button>
         </div>
       </div>
-    </div>
+    </motion.div>
   );
 
   if (phase === 'session') {
     const q = sessionQs[idx];
     return (
-      <div style={{ animation: 'fadeInUp 0.4s ease' }}>
-        <div className="mock-session">
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-            <span style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>Question {idx + 1} of {sessionQs.length}</span>
-            <div className="progress-bar-track" style={{ width: 200 }}>
-              <div className="progress-bar-fill" style={{ width: `${((idx + 1) / sessionQs.length) * 100}%` }} />
+      <motion.div 
+        variants={containerVariants}
+        initial="initial"
+        animate="animate"
+        exit="exit"
+        className="animate-fade-up"
+      >
+        <div className="mock-session" style={{ maxWidth: '900px', margin: '0 auto' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px' }}>
+            <div style={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--text-secondary)' }}>
+                Step <span className="gradient-text" style={{ fontSize: '1.2rem', fontWeight: 800 }}>{idx + 1}</span> of {sessionQs.length}
+            </div>
+            <div style={{ width: '250px', background: 'rgba(255,255,255,0.05)', height: '8px', borderRadius: '4px', overflow: 'hidden' }}>
+              <motion.div 
+                 initial={{ width: 0 }}
+                 animate={{ width: `${((idx + 1) / sessionQs.length) * 100}%` }}
+                 style={{ height: '100%', background: 'var(--primary)', borderRadius: '4px' }} 
+              />
             </div>
           </div>
 
-          <div style={{ textAlign: 'center', marginBottom: 24 }}>
-            <svg width="120" height="120" viewBox="0 0 120 120">
-              <circle cx="60" cy="60" r="54" fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="8" />
-              <circle cx="60" cy="60" r="54" fill="none" stroke={timerColor} strokeWidth="8"
-                strokeLinecap="round" strokeDasharray={`${2 * Math.PI * 54}`}
-                strokeDashoffset={`${2 * Math.PI * 54 * (1 - timerPct / 100)}`}
-                style={{ transition: 'stroke-dashoffset 1s linear, stroke 0.5s', transform: 'rotate(-90deg)', transformOrigin: 'center' }} />
-              <text x="60" y="56" textAnchor="middle" fill={timerColor} fontSize="24" fontWeight="800" fontFamily="Space Grotesk">
-                {Math.floor(timeLeft / 60)}:{String(timeLeft % 60).padStart(2, '0')}
-              </text>
-              <text x="60" y="74" textAnchor="middle" fill="#64748b" fontSize="11" fontFamily="Inter">seconds</text>
-            </svg>
-          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 340px', gap: '32px' }}>
+            <div className="flex flex-col gap-24">
+              <div className="glass-strong" style={{ padding: '32px' }}>
+                <div style={{ display: 'flex', gap: '8px', marginBottom: '16px' }}>
+                  <span className={`badge badge-${q.topic.toLowerCase()}`} style={{ background: 'rgba(124, 58, 237, 0.1)', color: 'var(--accent)' }}>{q.topic}</span>
+                  <span className={`badge badge-${q.difficulty.toLowerCase()}`}>{q.difficulty}</span>
+                </div>
+                <h2 style={{ fontSize: '1.4rem', lineHeight: 1.5, fontWeight: 700 }}>{q.question}</h2>
+                
+                <AnimatePresence mode="wait">
+                  {!revealed ? (
+                    <motion.div 
+                      key="input"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                    >
+                      <textarea
+                        placeholder="Draft your technical response here..."
+                        value={userAnswers[idx] || ''}
+                        onChange={(e) => setUserAnswers(curr => ({ ...curr, [idx]: e.target.value }))}
+                        className="custom-scrollbar"
+                        style={{
+                          width: '100%', minHeight: '240px', marginTop: '24px',
+                          padding: '20px', borderRadius: '16px', border: '1px solid var(--border)',
+                          background: 'rgba(0,0,0,0.2)', color: 'var(--text-primary)',
+                          fontFamily: 'inherit', fontSize: '1rem', resize: 'none', outline: 'none',
+                          lineHeight: '1.6'
+                        }}
+                      />
+                      <button className="btn btn-primary btn-glow" style={{ marginTop: '24px', padding: '12px 32px', borderRadius: '12px' }} onClick={() => setRevealed(true)}>
+                        Finalize & Reveal
+                      </button>
+                    </motion.div>
+                  ) : (
+                    <motion.div 
+                      key="reveal"
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                    >
+                      <div style={{ marginTop: '32px', display: 'flex', flexDirection: 'column', gap: '24px' }}>
+                         <div>
+                            <div style={{ fontSize: '0.8rem', fontWeight: 800, color: 'var(--accent)', textTransform: 'uppercase', marginBottom: '12px', letterSpacing: '1px' }}>Your Response</div>
+                            <div className="glass" style={{ padding: '20px', fontSize: '0.95rem', background: 'rgba(124, 58, 237, 0.05)', border: '1px solid rgba(124, 58, 237, 0.2)' }}>
+                                {userAnswers[idx] || 'No response provided.'}
+                            </div>
+                         </div>
+                         
+                         <div>
+                            <div style={{ fontSize: '0.8rem', fontWeight: 800, color: 'var(--secondary)', textTransform: 'uppercase', marginBottom: '12px', letterSpacing: '1px' }}>Ideal Methodology</div>
+                            <div className="glass" style={{ padding: '20px', fontSize: '0.95rem', background: 'rgba(0,0,0,0.2)' }}>
+                                {q.answer}
+                            </div>
+                         </div>
 
-          <div className="glass" style={{ padding: 28, marginBottom: 20 }}>
-            <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
-              <span className={`badge badge-${q.topic.toLowerCase()}`}>{q.topic}</span>
-              <span className={`badge badge-${q.difficulty.toLowerCase()}`}>{q.difficulty}</span>
+
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+              
+              <div style={{ display: 'flex', gap: '16px', justifyContent: 'flex-end' }}>
+                <button className="btn btn-ghost" onClick={() => { stopTimer(); setPhase('results'); }} style={{ borderRadius: '12px' }}>End Studio</button>
+                <button id="mock-next" className="btn btn-primary btn-glow" onClick={next} style={{ borderRadius: '12px', padding: '12px 40px' }}>
+                  {idx + 1 === sessionQs.length ? <><CheckCircle size={18} /> Finish Session</> : <><SkipForward size={18} /> Next Protocol</>}
+                </button>
+              </div>
             </div>
-            <h2 style={{ fontSize: '1.1rem', lineHeight: 1.5 }}>{q.question}</h2>
 
-            {!revealed ? (
-              <button className="btn btn-primary" style={{ marginTop: 20 }} onClick={() => setRevealed(true)}>
-                Reveal Answer
-              </button>
-            ) : (
-              <div style={{ marginTop: 20 }}>
-                <div className="answer-box">{q.answer}</div>
-                <div style={{ marginTop: 16 }}>
-                  <div style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 10 }}>
-                    How well did you know this? (1 = Poor, 5 = Perfect)
-                  </div>
-                  <div style={{ display: 'flex', gap: 8 }}>
-                    {[1, 2, 3, 4, 5].map(r => (
-                      <button key={r} onClick={() => setRatings(rat => ({ ...rat, [idx]: r }))} style={{
-                        width: 40, height: 40, borderRadius: 10,
-                        border: `2px solid ${ratings[idx] === r ? '#8b5cf6' : 'var(--border)'}`,
-                        background: ratings[idx] === r ? 'rgba(139,92,246,0.25)' : 'var(--bg-card)',
-                        color: ratings[idx] === r ? '#a78bfa' : 'var(--text-secondary)',
-                        cursor: 'pointer', fontWeight: 700, fontSize: '1rem', transition: 'all 0.2s'
-                      }}>{r}</button>
-                    ))}
-                  </div>
+            <aside className="flex flex-col gap-24">
+              <div className="glass-strong" style={{ padding: '24px', textAlign: 'center' }}>
+                <div style={{ marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px', justifyContent: 'center' }}>
+                    <Timer size={16} color="var(--text-muted)" />
+                    <span style={{ fontSize: '0.8rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '1px' }}>Response Clock</span>
+                </div>
+                <div style={{ position: 'relative', width: '160px', height: '160px', margin: '0 auto' }}>
+                    <svg width="160" height="160" viewBox="0 0 160 160">
+                      <circle cx="80" cy="80" r="70" fill="none" stroke="rgba(255,255,255,0.03)" strokeWidth="10" />
+                      <motion.circle 
+                        cx="80" cy="80" r="70" fill="none" stroke={timerColor} strokeWidth="10"
+                        strokeLinecap="round" strokeDasharray={`${2 * Math.PI * 70}`}
+                        animate={{ strokeDashoffset: 2 * Math.PI * 70 * (1 - timerPct / 100) }}
+                        style={{ transform: 'rotate(-90deg)', transformOrigin: 'center' }} 
+                      />
+                    </svg>
+                    <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+                        <div style={{ fontSize: '2.5rem', fontWeight: 800, fontFamily: 'var(--font-display)', color: timerColor }}>
+                            {Math.floor(timeLeft / 60)}:{String(timeLeft % 60).padStart(2, '0')}
+                        </div>
+                        <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600 }}>REMAINING</div>
+                    </div>
                 </div>
               </div>
-            )}
-          </div>
 
-          <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end' }}>
-            <button className="btn btn-ghost" onClick={() => { stopTimer(); setPhase('results'); }}>End Session</button>
-            <button id="mock-next" className="btn btn-primary" onClick={next}>
-              {idx + 1 === sessionQs.length ? <><CheckCircle size={17} /> Finish</> : <><SkipForward size={17} /> Next</>}
-            </button>
+              {revealed && (
+                <motion.div 
+                    initial={{ opacity: 0, x: 20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    className="glass-strong" style={{ padding: '24px' }}
+                >
+                    <div style={{ fontSize: '0.8rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '20px', letterSpacing: '1px', textAlign: 'center' }}>Self-Audit Profile</div>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '8px' }}>
+                        {[1, 2, 3, 4, 5].map(r => (
+                        <button key={r} onClick={() => setRatings(rat => ({ ...rat, [idx]: r }))} style={{
+                            height: '44px', borderRadius: '10px',
+                            border: `1px solid ${ratings[idx] === r ? 'var(--primary)' : 'var(--border)'}`,
+                            background: ratings[idx] === r ? 'rgba(124, 58, 237, 0.2)' : 'rgba(0,0,0,0.2)',
+                            color: ratings[idx] === r ? 'var(--accent)' : 'var(--text-muted)',
+                            cursor: 'pointer', fontWeight: 800, fontSize: '1.1rem', transition: '0.2s'
+                        }}>{r}</button>
+                        ))}
+                    </div>
+                    <p style={{ marginTop: '16px', fontSize: '0.8rem', color: 'var(--text-muted)', textAlign: 'center' }}>
+                        Rate your response accuracy from 1 to 5 to update your preparation score.
+                    </p>
+                </motion.div>
+              )}
+            </aside>
           </div>
         </div>
-      </div>
+
+
+      </motion.div>
     );
   }
 
   const ratedCount = Object.keys(ratings).length;
   const highRated = Object.values(ratings).filter(r => r >= 4).length;
+  
   return (
-    <div style={{ animation: 'fadeInUp 0.4s ease', maxWidth: 600, margin: '0 auto', textAlign: 'center' }}>
-      <div style={{ fontSize: '4rem', marginBottom: 16 }}>🏆</div>
-      <h1 style={{ marginBottom: 8 }}>Session Complete!</h1>
-      <p style={{ color: 'var(--text-secondary)', marginBottom: 28 }}>You answered {sessionQs.length} questions in your mock interview.</p>
+    <motion.div 
+      variants={containerVariants}
+      initial="initial"
+      animate="animate"
+      className="animate-fade-up"
+      style={{ maxWidth: '800px', margin: '0 auto', textAlign: 'center' }}
+    >
+      <div style={{ position: 'relative', width: 'fit-content', margin: '0 auto 40px' }}>
+          <div style={{ width: '100px', height: '100px', borderRadius: '50%', background: 'rgba(124, 58, 237, 0.2)', filter: 'blur(30px)', position: 'absolute', top: 0, left: 0 }} />
+          <Trophy size={80} color="var(--primary)" style={{ position: 'relative' }} />
+      </div>
+      
+      <h1 className="hero-title" style={{ fontSize: '3rem', marginBottom: '12px' }}>Session Debrief</h1>
+      <p style={{ color: 'var(--text-secondary)', marginBottom: '48px', fontSize: '1.1rem' }}>Excellent focus. Your session data has been compiled below.</p>
 
-      <div className="stats-grid" style={{ textAlign: 'left', marginBottom: 28 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '20px', marginBottom: '40px' }}>
         {[
-          { label: 'Questions', value: sessionQs.length },
-          { label: 'Self-Rated', value: ratedCount },
-          { label: 'Avg Score', value: `${avgRating()}/5` },
-          { label: 'Strong (≥4)', value: highRated },
-        ].map(({ label, value }) => (
-          <div key={label} className="stat-card">
-            <div><div className="stat-value gradient-text">{value}</div><div className="stat-label">{label}</div></div>
+          { label: 'Modules', value: sessionQs.length, icon: BookOpen, color: 'var(--accent)' },
+          { label: 'Audited', value: ratedCount, icon: CheckCircle, color: 'var(--success)' },
+          { label: 'Performance', value: `${avgRating()}/5`, icon: BarChart3, color: 'var(--secondary)' },
+          { label: 'Mastered', value: highRated, icon: Trophy, color: 'var(--primary)' },
+        ].map((stat, i) => (
+          <div key={i} className="glass" style={{ padding: '24px', borderBottom: `2px solid ${stat.color}44` }}>
+            <div style={{ fontSize: '1.8rem', fontWeight: 800 }}>{stat.value}</div>
+            <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '1px', marginTop: '4px' }}>{stat.label}</div>
           </div>
         ))}
       </div>
 
-      <div style={{ background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.25)', borderRadius: 12, padding: '16px 20px', marginBottom: 24, textAlign: 'left' }}>
+      <div className="glass-strong" style={{ padding: '32px', textAlign: 'left', marginBottom: '40px' }}>
+        <h3 style={{ fontSize: '1.1rem', fontWeight: 800, marginBottom: '24px', display: 'flex', alignItems: 'center', gap: '10px' }}> 
+            <BarChart3 size={18} color="var(--accent)" /> Detailed Protocol Analysis 
+        </h3>
         {sessionQs.map((q, i) => (
-          <div key={q.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: i < sessionQs.length - 1 ? '1px solid var(--border)' : 'none', fontSize: '0.87rem', gap: 12 }}>
-            <span style={{ flex: 1, color: 'var(--text-secondary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{q.question}</span>
-            <span style={{ color: ratings[i] >= 4 ? '#10b981' : ratings[i] >= 2 ? '#f59e0b' : '#ef4444', fontWeight: 700, flexShrink: 0 }}>
-              {ratings[i] ? `${ratings[i]}/5` : '—'}
-            </span>
+          <div key={q.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 0', borderBottom: i < sessionQs.length - 1 ? '1px solid var(--border)' : 'none', gap: '24px' }}>
+            <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontWeight: 600, fontSize: '0.95rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{q.question}</div>
+                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '4px' }}>{q.topic} • {q.difficulty}</div>
+            </div>
+            <div style={{ 
+                width: '44px', height: '44px', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyCenter: 'center',
+                background: ratings[i] >= 4 ? 'rgba(16, 185, 129, 0.1)' : ratings[i] >= 2 ? 'rgba(245, 158, 11, 0.1)' : 'rgba(239, 68, 68, 0.1)',
+                color: ratings[i] >= 4 ? 'var(--success)' : ratings[i] >= 2 ? 'var(--warning)' : 'var(--danger)',
+                fontWeight: 800, flexShrink: 0 
+            }}>
+              <span style={{ margin: '0 auto' }}>{ratings[i] ? ratings[i] : '—'}</span>
+            </div>
           </div>
         ))}
       </div>
 
-      <button className="btn btn-primary btn-lg" onClick={() => setPhase('setup')}>
-        <RefreshCw size={18} /> Try Again
-      </button>
-    </div>
+      <div style={{ display: 'flex', gap: '16px', justifyContent: 'center' }}>
+          <button className="btn btn-ghost btn-lg" onClick={() => setPhase('setup')} style={{ borderRadius: '12px' }}>New Session</button>
+          <Link to="/notes" className="btn btn-primary btn-glow btn-lg" style={{ borderRadius: '12px', padding: '12px 48px', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            View Preparation Roadmap <ChevronRight size={18} />
+          </Link>
+      </div>
+    </motion.div>
   );
 }

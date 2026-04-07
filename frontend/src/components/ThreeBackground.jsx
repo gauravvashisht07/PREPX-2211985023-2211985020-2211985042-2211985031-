@@ -17,31 +17,56 @@ export default function ThreeBackground() {
     const camera = new THREE.PerspectiveCamera(70, W / H, 0.1, 1000);
     camera.position.z = 80;
 
-    // Particle system
-    const count = 200;
+    // Particle system (Purple & Cyan Dual-Color)
+    const count = 300;
     const positions = new Float32Array(count * 3);
+    const colors = new Float32Array(count * 3);
     const velocities = Array.from({ length: count }, () => ({
-      x: (Math.random() - 0.5) * 0.04,
-      y: (Math.random() - 0.5) * 0.04,
-      z: (Math.random() - 0.5) * 0.02,
+      x: (Math.random() - 0.5) * 0.05,
+      y: (Math.random() - 0.5) * 0.05,
+      z: (Math.random() - 0.5) * 0.03,
     }));
 
+    const color1 = new THREE.Color(0x7c3aed); // Purple
+    const color2 = new THREE.Color(0x06b6d4); // Cyan
+
     for (let i = 0; i < count; i++) {
-      positions[i * 3] = (Math.random() - 0.5) * 160;
-      positions[i * 3 + 1] = (Math.random() - 0.5) * 120;
-      positions[i * 3 + 2] = (Math.random() - 0.5) * 80;
+        // Positions
+      positions[i * 3] = (Math.random() - 0.5) * 200;
+      positions[i * 3 + 1] = (Math.random() - 0.5) * 150;
+      positions[i * 3 + 2] = (Math.random() - 0.5) * 100;
+
+      // Colors
+      const mix = Math.random();
+      const finalColor = color1.clone().lerp(color2, mix);
+      colors[i * 3] = finalColor.r;
+      colors[i * 3 + 1] = finalColor.g;
+      colors[i * 3 + 2] = finalColor.b;
     }
 
     const geometry = new THREE.BufferGeometry();
     geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-    const material = new THREE.PointsMaterial({ color: 0x8b5cf6, size: 0.6, transparent: true, opacity: 0.7 });
+    geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+    
+    const material = new THREE.PointsMaterial({ 
+        size: 0.8, 
+        vertexColors: true, 
+        transparent: true, 
+        opacity: 0.6,
+        blending: THREE.AdditiveBlending 
+    });
+    
     const particles = new THREE.Points(geometry, material);
     scene.add(particles);
 
-    // Line network
-    const lineMat = new THREE.LineBasicMaterial({ color: 0x8b5cf6, transparent: true, opacity: 0.08 });
+    // Line network (very subtle)
+    const lineMat = new THREE.LineBasicMaterial({ 
+        color: 0x7c3aed, 
+        transparent: true, 
+        opacity: 0.05 
+    });
     let linesMesh = null;
-    const MAX_DIST = 30;
+    const MAX_DIST = 25;
 
     const buildLines = () => {
       if (linesMesh) scene.remove(linesMesh);
@@ -50,7 +75,8 @@ export default function ThreeBackground() {
       for (let i = 0; i < count; i++) {
         for (let j = i + 1; j < count; j++) {
           const dx = pos[i*3] - pos[j*3], dy = pos[i*3+1] - pos[j*3+1], dz = pos[i*3+2] - pos[j*3+2];
-          if (Math.sqrt(dx*dx+dy*dy+dz*dz) < MAX_DIST) {
+          const distSq = dx*dx+dy*dy+dz*dz;
+          if (distSq < MAX_DIST * MAX_DIST) {
             lineVerts.push(pos[i*3], pos[i*3+1], pos[i*3+2], pos[j*3], pos[j*3+1], pos[j*3+2]);
           }
         }
@@ -60,7 +86,6 @@ export default function ThreeBackground() {
       linesMesh = new THREE.LineSegments(lg, lineMat);
       scene.add(linesMesh);
     };
-    buildLines();
 
     let frame = 0;
     const animate = () => {
@@ -72,15 +97,17 @@ export default function ThreeBackground() {
         pos[i*3] += velocities[i].x;
         pos[i*3+1] += velocities[i].y;
         pos[i*3+2] += velocities[i].z;
-        if (Math.abs(pos[i*3]) > 80) velocities[i].x *= -1;
-        if (Math.abs(pos[i*3+1]) > 60) velocities[i].y *= -1;
-        if (Math.abs(pos[i*3+2]) > 40) velocities[i].z *= -1;
+        if (Math.abs(pos[i*3]) > 100) velocities[i].x *= -1;
+        if (Math.abs(pos[i*3+1]) > 75) velocities[i].y *= -1;
+        if (Math.abs(pos[i*3+2]) > 50) velocities[i].z *= -1;
       }
       geometry.attributes.position.needsUpdate = true;
+      
       frame++;
-      if (frame % 3 === 0) buildLines();
+      if (frame % 5 === 0) buildLines();
 
-      particles.rotation.y += 0.0003;
+      particles.rotation.y += 0.0002;
+      particles.rotation.z += 0.0001;
       renderer.render(scene, camera);
     };
     animate();
@@ -95,7 +122,9 @@ export default function ThreeBackground() {
     return () => {
       cancelAnimationFrame(mount.__animId);
       window.removeEventListener('resize', onResize);
-      mount.removeChild(renderer.domElement);
+      if (mount.contains(renderer.domElement)) {
+        mount.removeChild(renderer.domElement);
+      }
       renderer.dispose();
     };
   }, []);
@@ -103,7 +132,7 @@ export default function ThreeBackground() {
   return (
     <div ref={mountRef} style={{
       position: 'fixed', inset: 0, zIndex: 0, pointerEvents: 'none',
-      background: 'radial-gradient(ellipse at 20% 50%, rgba(139,92,246,0.12) 0%, transparent 60%), radial-gradient(ellipse at 80% 20%, rgba(6,182,212,0.08) 0%, transparent 50%), #080b1a'
+      background: 'radial-gradient(circle at 10% 20%, rgba(124, 58, 237, 0.1) 0%, transparent 40%), radial-gradient(circle at 90% 80%, rgba(6, 182, 212, 0.05) 0%, transparent 40%), #03050f'
     }} />
   );
 }

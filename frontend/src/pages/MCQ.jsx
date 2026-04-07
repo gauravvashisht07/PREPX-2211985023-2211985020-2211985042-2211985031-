@@ -3,7 +3,8 @@ import { mcqQuestions, mcqTopics, mcqDifficulties } from '../data/mcqQuestions.j
 import api from '../api/axios.js';
 import { useToast } from '../context/ToastContext.jsx';
 import { QuestionSkeleton } from '../components/Skeleton.jsx';
-import { ChevronDown, ChevronUp, CheckCircle, Circle, Search, Volume2 } from 'lucide-react';
+import { ChevronDown, ChevronUp, CheckCircle, Circle, Search, Filter, Target, BarChart3, HelpCircle } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 
 export default function MCQ() {
   const toast = useToast();
@@ -15,30 +16,18 @@ export default function MCQ() {
   const [attempted, setAttempted] = useState([]);
   const [answers, setAnswers] = useState({});
   const [loading, setLoading] = useState(true);
-  const [showResults, setShowResults] = useState(false);
-  const [submitting, setSubmitting] = useState(null); // Track which question is being submitted
-  const submitTimeoutRef = useRef({});
+  const [submitting, setSubmitting] = useState(null);
 
-  // Debounce search
   useEffect(() => {
     const timer = setTimeout(() => setDebouncedSearch(search), 300);
     return () => clearTimeout(timer);
   }, [search]);
 
-  // Cleanup on unmount
-  useEffect(() => {
-    return () => {
-      Object.values(submitTimeoutRef.current).forEach(timeout => clearTimeout(timeout));
-    };
-  }, []);
-
-  // Fetch attempted questions & answers
   useEffect(() => {
     const controller = new AbortController();
     api.get('/mcq', { signal: controller.signal })
       .then(r => {
         setAttempted(r.data.attemptedQuestions || []);
-        // Convert string keys to numbers for consistency
         const answersMap = {};
         Object.entries(r.data.answers || {}).forEach(([key, value]) => {
           answersMap[parseInt(key)] = value;
@@ -57,30 +46,15 @@ export default function MCQ() {
   );
 
   const handleAnswerSubmit = async (questionId, selectedOption) => {
-    // Prevent multiple rapid submissions for the same question
     if (submitting === questionId) return;
-
     const isMCQAnswered = Object.hasOwn(answers, questionId);
     setSubmitting(questionId);
 
     try {
       const question = mcqQuestions.find(q => q.id === questionId);
-      if (!question) throw new Error('Question not found');
-
       const isCorrect = selectedOption === question.correctAnswer;
-
-      const res = await api.post('/mcq/answer', {
-        questionId,
-        selectedOption,
-        topic: question.topic,
-        isCorrect,
-      });
-
-      if (!res.data || !res.data.answers) {
-        throw new Error('Invalid response from server');
-      }
-
-      // Convert string keys to numbers for consistency
+      const res = await api.post('/mcq/answer', { questionId, selectedOption, topic: question.topic, isCorrect });
+      
       const answersMap = {};
       Object.entries(res.data.answers || {}).forEach(([key, value]) => {
         answersMap[parseInt(key)] = value;
@@ -89,27 +63,16 @@ export default function MCQ() {
       setAttempted(res.data.attemptedQuestions || []);
 
       if (!isMCQAnswered) {
-        if (isCorrect) {
-          toast.success('Correct answer! 🎉');
-        } else {
-          toast.error(`Incorrect! Correct: ${question.options[question.correctAnswer]}`);
-        }
+        if (isCorrect) toast.success('Correct answer! 🎉');
+        else toast.error(`Incorrect choice`);
       } else {
         toast.info('Answer updated');
       }
-    } catch (err) {
-      console.error('Answer submission error:', err);
-      toast.error('Failed to submit answer. Please try again.');
-    } finally {
-      setSubmitting(null);
-    }
+    } catch { toast.error('Submission failed'); }
+    setSubmitting(null);
   };
 
 
-  const topicCounts = {};
-  mcqTopics.forEach(t => {
-    topicCounts[t] = t === 'All' ? mcqQuestions.length : mcqQuestions.filter(q => q.topic === t).length;
-  });
 
   const correctCount = Object.keys(answers).filter(qid => {
     const q = mcqQuestions.find(m => m.id === parseInt(qid));
@@ -117,278 +80,149 @@ export default function MCQ() {
   }).length;
 
   return (
-    <div style={{ animation: 'fadeInUp 0.4s ease' }}>
-      {/* Header Section */}
-      <div style={{ background: 'linear-gradient(135deg, rgba(139,92,246,0.2), rgba(6,182,212,0.12))', border: '1px solid rgba(139,92,246,0.25)', borderRadius: 'var(--radius-lg)', padding: '24px 28px', marginBottom: 24 }}>
-        <h2 style={{ fontSize: '1.5rem', marginBottom: 8, color: 'var(--text-primary)' }}>📋 Multiple Choice Questions</h2>
-        <p style={{ color: 'var(--text-secondary)', fontSize: '0.95rem', marginBottom: 12 }}>Test your knowledge with MCQs across all topics</p>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 16 }}>
-          <div style={{ background: 'rgba(255,255,255,0.05)', padding: 12, borderRadius: 'var(--radius-sm)', textAlign: 'center' }}>
-            <div style={{ color: 'var(--primary)', fontSize: '1.8rem', fontWeight: 'bold' }}>{filtered.length}</div>
-            <div style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>Available MCQs</div>
-          </div>
-          <div style={{ background: 'rgba(255,255,255,0.05)', padding: 12, borderRadius: 'var(--radius-sm)', textAlign: 'center' }}>
-            <div style={{ color: 'var(--success)', fontSize: '1.8rem', fontWeight: 'bold' }}>{correctCount}</div>
-            <div style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>Correct Answers</div>
-          </div>
-          <div style={{ background: 'rgba(255,255,255,0.05)', padding: 12, borderRadius: 'var(--radius-sm)', textAlign: 'center' }}>
-            <div style={{ color: 'var(--accent)', fontSize: '1.8rem', fontWeight: 'bold' }}>{Object.keys(answers).length}</div>
-            <div style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>Attempted</div>
-          </div>
-        </div>
+    <div className="animate-fade-up">
+      <div className="section-header" style={{ marginBottom: '40px' }}>
+        <h1 className="section-title">MCQ Assessment</h1>
+        <p className="section-sub">Validate your conceptual depth with precision-targeted assessments.</p>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '260px 1fr', gap: 24, position: 'relative' }}>
-        {/* Sidebar Filters */}
-        <div style={{ position: 'sticky', top: 100, height: 'fit-content' }}>
-          <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 'var(--radius)', padding: 16 }}>
-            <h3 style={{ fontSize: '0.9rem', fontWeight: '600', marginBottom: 14, textTransform: 'uppercase', color: 'var(--text-secondary)', letterSpacing: '0.5px' }}>Topic</h3>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              {mcqTopics.map(t => (
-                <button
-                  key={t}
-                  onClick={() => setTopic(t)}
-                  style={{
-                    padding: '10px 12px',
-                    borderRadius: 'var(--radius-sm)',
-                    border: 'none',
-                    background: topic === t ? 'rgba(139, 92, 246, 0.2)' : 'transparent',
-                    color: topic === t ? 'var(--primary)' : 'var(--text-secondary)',
-                    cursor: 'pointer',
-                    textAlign: 'left',
-                    fontSize: '0.9rem',
-                    fontWeight: topic === t ? '600' : '400',
-                    transition: 'all var(--transition)',
-                    borderLeft: topic === t ? '2px solid var(--primary)' : 'none',
-                    paddingLeft: topic === t ? '10px' : '12px'
-                  }}
-                >
-                  {t} ({topicCounts[t]})
-                </button>
-              ))}
+      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(200px, 280px) 1fr', gap: '32px' }}>
+        <aside>
+          <div className="glass-strong" style={{ padding: '24px', position: 'sticky', top: '100px' }}>
+            <div style={{ marginBottom: '32px', textAlign: 'center' }}>
+                <div style={{ fontSize: '2.5rem', fontWeight: 800, color: 'var(--accent)' }}>{correctCount}</div>
+                <div style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '1px' }}>Total Successes</div>
+                <div style={{ marginTop: '8px', height: '4px', background: 'rgba(255,255,255,0.05)', borderRadius: '2px', overflow: 'hidden' }}>
+                    <motion.div initial={{ width: 0 }} animate={{ width: `${(correctCount / mcqQuestions.length) * 100}%` }} style={{ height: '100%', background: 'var(--accent)' }} />
+                </div>
             </div>
 
-            <h3 style={{ fontSize: '0.9rem', fontWeight: '600', marginTop: 20, marginBottom: 14, textTransform: 'uppercase', color: 'var(--text-secondary)', letterSpacing: '0.5px' }}>Difficulty</h3>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              {mcqDifficulties.map(d => (
-                <button
-                  key={d}
-                  onClick={() => setDiff(d)}
-                  style={{
-                    padding: '10px 12px',
-                    borderRadius: 'var(--radius-sm)',
-                    border: 'none',
-                    background: diff === d ? 'rgba(139, 92, 246, 0.2)' : 'transparent',
-                    color: diff === d ? 'var(--primary)' : 'var(--text-secondary)',
-                    cursor: 'pointer',
-                    textAlign: 'left',
-                    fontSize: '0.9rem',
-                    fontWeight: diff === d ? '600' : '400',
-                    transition: 'all var(--transition)',
-                    borderLeft: diff === d ? '2px solid var(--primary)' : 'none',
-                    paddingLeft: diff === d ? '10px' : '12px'
-                  }}
-                >
-                  {d}
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        {/* Main Content */}
-        <div>
-          {/* Search Bar */}
-          <div style={{ marginBottom: 20, position: 'relative' }}>
-            <Search size={20} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-secondary)' }} />
-            <input
-              type="text"
-              placeholder="Search questions..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              style={{
-                width: '100%',
-                padding: '12px 16px 12px 40px',
-                background: 'var(--bg-card)',
-                border: '1px solid var(--border)',
-                borderRadius: 'var(--radius-sm)',
-                color: 'var(--text-primary)',
-                fontSize: '0.95rem',
-                outline: 'none',
-                transition: 'border-color var(--transition)'
-              }}
-              onFocus={(e) => e.target.style.borderColor = 'var(--primary)'}
-              onBlur={(e) => e.target.style.borderColor = 'var(--border)'}
-            />
-          </div>
-
-          {/* MCQ List */}
-          {loading ? (
-            <div style={{ display: 'grid', gap: 12 }}>
-              {[...Array(5)].map((_, i) => <QuestionSkeleton key={i} />)}
-            </div>
-          ) : filtered.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: '60px 20px', color: 'var(--text-secondary)' }}>
-              <div style={{ fontSize: '3rem', marginBottom: 12 }}>🔍</div>
-              <p>No MCQs found</p>
-            </div>
-          ) : (
-            <div style={{ display: 'grid', gap: 12 }}>
-              {filtered.map(q => {
-                const isAttempted = Object.hasOwn(answers, q.id);
-                const selectedAnswer = answers[q.id];
-                const isCorrect = isAttempted && selectedAnswer === q.correctAnswer;
-
-                return (
-                  <div
-                    key={q.id}
-                    style={{
-                      background: 'var(--bg-card)',
-                      border: `1px solid ${isAttempted ? (isCorrect ? 'rgba(16, 185, 129, 0.3)' : 'rgba(239, 68, 68, 0.3)') : 'var(--border)'}`,
-                      borderRadius: 'var(--radius)',
-                      overflow: 'hidden'
-                    }}
-                  >
-                    <button
-                      onClick={() => setExpanded(expanded === q.id ? null : q.id)}
-                      style={{
-                        width: '100%',
-                        padding: '16px 20px',
-                        background: 'none',
-                        border: 'none',
-                        textAlign: 'left',
-                        cursor: 'pointer',
-                        display: 'grid',
-                        gridTemplateColumns: 'auto 1fr auto',
-                        gap: 12,
-                        alignItems: 'start',
-                        color: 'inherit'
-                      }}
-                    >
-                      {/* Status Icon */}
-                      <div style={{ marginTop: 2 }}>
-                        {isAttempted ? (
-                          <CheckCircle size={18} style={{ color: isCorrect ? 'var(--success)' : 'var(--danger)' }} />
-                        ) : (
-                          <Circle size={18} style={{ color: 'var(--text-muted)' }} />
-                        )}
-                      </div>
-
-                      {/* Question Text & Details */}
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
-                          <span style={{
-                            fontSize: '0.75rem',
-                            fontWeight: '600',
-                            padding: '3px 10px',
-                            borderRadius: '12px',
-                            background: 'rgba(139, 92, 246, 0.1)',
-                            color: 'var(--primary)',
-                            textTransform: 'uppercase',
-                            letterSpacing: '0.5px'
-                          }}>
-                            {q.topic}
-                          </span>
-                          <span style={{
-                            fontSize: '0.75rem',
-                            fontWeight: '500',
-                            padding: '3px 10px',
-                            borderRadius: '12px',
-                            background: q.difficulty === 'Easy' ? 'rgba(16, 185, 129, 0.1)' : q.difficulty === 'Medium' ? 'rgba(245, 158, 11, 0.1)' : 'rgba(239, 68, 68, 0.1)',
-                            color: q.difficulty === 'Easy' ? 'var(--success)' : q.difficulty === 'Medium' ? 'var(--warning)' : 'var(--danger)'
-                          }}>
-                            {q.difficulty}
-                          </span>
-                        </div>
-                        <p style={{ color: 'var(--text-primary)', fontSize: '0.95rem', fontWeight: '500', marginBottom: 4 }}>
-                          {q.question}
-                        </p>
-                        {isAttempted && (
-                          <p style={{
-                            color: isCorrect ? 'var(--success)' : 'var(--danger)',
-                            fontSize: '0.85rem'
-                          }}>
-                            {isCorrect ? '✓ Correct' : '✗ Incorrect'} • Answer: {q.options[selectedAnswer]}
-                          </p>
-                        )}
-                      </div>
-
-                      {/* Expand Icon */}
-                      {expanded === q.id ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
-                    </button>
-
-                    {/* Expanded Options */}
-                    {expanded === q.id && (
-                      <div style={{ borderTop: '1px solid var(--border)', padding: '16px 20px' }}>
-                        <div style={{ marginBottom: 16 }}>
-                          <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', marginBottom: 12, fontWeight: '500' }}>Select your answer:</p>
-                          <div style={{ display: 'grid', gap: 10 }}>
-                            {q.options.map((opt, idx) => {
-                              const isSelected = selectedAnswer === idx;
-                              const isSubmittingThis = submitting === q.id;
-                              return (
-                                <button
-                                  key={idx}
-                                  onClick={() => handleAnswerSubmit(q.id, idx)}
-                                  disabled={isSubmittingThis}
-                                  style={{
-                                    padding: '12px 16px',
-                                    background: isSelected ? (isCorrect ? 'rgba(16, 185, 129, 0.15)' : 'rgba(239, 68, 68, 0.15)') : 'rgba(255, 255, 255, 0.03)',
-                                    border: `1px solid ${isSelected ? (isCorrect ? 'var(--success)' : 'var(--danger)') : 'var(--border)'}`,
-                                    borderRadius: 'var(--radius-sm)',
-                                    color: isSelected ? (isCorrect ? 'var(--success)' : 'var(--danger)') : 'var(--text-primary)',
-                                    cursor: isSubmittingThis ? 'not-allowed' : 'pointer',
-                                    fontSize: '0.9rem',
-                                    textAlign: 'left',
-                                    transition: 'all var(--transition)',
-                                    fontWeight: isSelected ? '500' : '400',
-                                    opacity: isSubmittingThis ? 0.6 : 1,
-                                  }}
-                                  onMouseEnter={(e) => {
-                                    if (!isSelected && !isSubmittingThis) e.target.style.background = 'rgba(255, 255, 255, 0.05)';
-                                  }}
-                                  onMouseLeave={(e) => {
-                                    if (!isSelected && !isSubmittingThis) e.target.style.background = 'rgba(255, 255, 255, 0.03)';
-                                  }}
-                                >
-                                  <span style={{ display: 'inline-block', marginRight: 10, fontWeight: '600' }}>
-                                    {String.fromCharCode(65 + idx)}.
-                                  </span>
-                                  {isSubmittingThis ? '⏳ Submitting...' : opt}
-                                </button>
-                              );
-                            })}
-                          </div>
-                        </div>
-
-                        {/* Explanation */}
-                        <div style={{ background: 'rgba(139, 92, 246, 0.08)', border: '1px solid rgba(139, 92, 246, 0.15)', borderRadius: 'var(--radius-sm)', padding: 12 }}>
-                          <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', marginBottom: 6, fontWeight: '600' }}>💡 Explanation</p>
-                          <p style={{ color: 'var(--text-primary)', fontSize: '0.85rem', lineHeight: 1.5 }}>
-                            {q.explanation}
-                          </p>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          )}
-
-          {filtered.length > 0 && Object.keys(answers).length > 0 && (
-            <div style={{ marginTop: 24, padding: '20px', background: 'linear-gradient(135deg, rgba(139,92,246,0.1), rgba(6,182,212,0.08))', border: '1px solid rgba(139, 92, 246, 0.2)', borderRadius: 'var(--radius)', textAlign: 'center' }}>
-              <p style={{ color: 'var(--text-primary)', marginBottom: 8 }}>Your Score</p>
-              <div style={{ fontSize: '2rem', fontWeight: 'bold', background: 'linear-gradient(135deg, var(--primary), var(--accent))', backgroundClip: 'text', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-                {correctCount} / {Object.keys(answers).length}
+            <div style={{ marginBottom: '24px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.75rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '16px' }}>
+                <Search size={14} /> Intelligence Search
               </div>
-              <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginTop: 8 }}>
-                Accuracy: {Math.round((correctCount / Object.keys(answers).length) * 100)}%
-              </p>
+              <input 
+                className="input" placeholder="Search parameters..." 
+                value={search} onChange={e => setSearch(e.target.value)} 
+                style={{ background: 'rgba(0,0,0,0.2)', borderRadius: '10px' }}
+              />
             </div>
+
+            <div style={{ marginBottom: '24px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.75rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '16px' }}>
+                <Filter size={14} /> Knowledge Domain
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                {mcqTopics.map(t => (
+                  <button 
+                    key={t} className={`nav-link ${topic === t ? 'active' : ''}`} onClick={() => setTopic(t)}
+                    style={{ background: 'none', border: 'none', padding: '10px 12px', fontSize: '0.85rem' }}
+                  >
+                    {t}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.75rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '16px' }}>
+                <Target size={14} /> Complexity
+              </div>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                {mcqDifficulties.map(d => (
+                  <button 
+                    key={d} onClick={() => setDiff(d)}
+                    className={`btn ${diff === d ? 'btn-primary' : 'btn-ghost'}`}
+                    style={{ padding: '6px 12px', fontSize: '0.75rem', borderRadius: '8px' }}
+                  >
+                    {d}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        </aside>
+
+        <div className="flex flex-col gap-16">
+          {loading ? (
+            Array.from({ length: 5 }).map((_, i) => <QuestionSkeleton key={i} />)
+          ) : filtered.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '100px 40px', color: 'var(--text-muted)' }}>No modules matched your query criteria.</div>
+          ) : (
+            filtered.map(q => {
+              const selected = answers[q.id];
+              const isDone = selected !== undefined;
+              const isCorrect = isDone && selected === q.correctAnswer;
+              const isOpen = expanded === q.id;
+
+              return (
+                <div key={q.id} className="glass" style={{ padding: 0, overflow: 'hidden', borderLeft: isDone ? `4px solid ${isCorrect ? 'var(--success)' : 'var(--danger)'}` : '1px solid var(--border)' }}>
+                    <div 
+                        onClick={() => setExpanded(isOpen ? null : q.id)}
+                        style={{ padding: '24px', cursor: 'pointer', display: 'flex', alignItems: 'start', gap: '20px' }}
+                    >
+                        <div style={{ marginTop: '2px' }}>
+                            {isDone ? (
+                                isCorrect ? <CheckCircle size={22} color="var(--success)" /> : <HelpCircle size={22} color="var(--danger)" />
+                            ) : <Circle size={22} color="var(--border)" />}
+                        </div>
+                        <div style={{ flex: 1 }}>
+                            <div style={{ display: 'flex', gap: '10px', marginBottom: '12px' }}>
+                                <span className="badge" style={{ background: 'rgba(255,255,255,0.05)', color: 'var(--text-muted)', fontSize: '0.7rem' }}>{q.topic}</span>
+                                <span className={`badge badge-${q.difficulty.toLowerCase()}`}>{q.difficulty}</span>
+                            </div>
+                            <h3 style={{ fontSize: '1rem', fontWeight: 600, lineHeight: 1.5, color: isDone ? 'var(--text-secondary)' : 'var(--text-primary)' }}>{q.question}</h3>
+                        </div>
+                        <div style={{ transform: isOpen ? 'rotate(180deg)' : 'none', transition: '0.3s', color: 'var(--text-muted)' }}>
+                            <ChevronDown size={20} />
+                        </div>
+                    </div>
+
+                    <AnimatePresence>
+                        {isOpen && (
+                            <motion.div initial={{ height: 0 }} animate={{ height: 'auto' }} exit={{ height: 0 }} style={{ overflow: 'hidden' }}>
+                                <div style={{ padding: '0 24px 24px 66px' }}>
+                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '24px' }}>
+                                        {q.options.map((opt, i) => (
+                                            <button 
+                                                key={i} 
+                                                onClick={() => handleAnswerSubmit(q.id, i)}
+                                                disabled={submitting === q.id}
+                                                style={{ 
+                                                    padding: '16px', borderRadius: '12px', textAlign: 'left', cursor: 'pointer',
+                                                    background: selected === i ? (isCorrect ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)') : 'rgba(255,255,255,0.02)',
+                                                    border: `1px solid ${selected === i ? (isCorrect ? 'var(--success)' : 'var(--danger)') : 'var(--border)'}`,
+                                                    color: selected === i ? (isCorrect ? 'var(--success)' : 'var(--danger)') : 'var(--text-primary)',
+                                                    fontSize: '0.9rem', transition: '0.2s', display: 'flex', gap: '12px'
+                                                }}
+                                            >
+                                                <span style={{ fontWeight: 800, opacity: 0.5 }}>{String.fromCharCode(65+i)}</span>
+                                                <span>{opt}</span>
+                                            </button>
+                                        ))}
+                                    </div>
+
+                                    <div className="glass-strong" style={{ padding: '20px', background: 'rgba(0,0,0,0.2)' }}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.8rem', fontWeight: 800, color: 'var(--accent)', textTransform: 'uppercase' }}>
+                                                <BarChart3 size={14} /> Logic Synthesis
+                                            </div>
+
+                                        </div>
+                                        <p style={{ fontSize: '0.9rem', lineHeight: 1.6, color: 'var(--text-secondary)' }}>{q.explanation}</p>
+                                    </div>
+                                </div>
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
+                </div>
+              );
+            })
           )}
         </div>
       </div>
+
+
     </div>
   );
 }

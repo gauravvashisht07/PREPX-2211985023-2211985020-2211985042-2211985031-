@@ -1,6 +1,6 @@
+import './config/env.js';
 import express from 'express';
 import cors from 'cors';
-import dotenv from 'dotenv';
 import connectDB from './config/db.js';
 import authRoutes from './routes/auth.js';
 import progressRoutes from './routes/progress.js';
@@ -8,8 +8,8 @@ import todoRoutes from './routes/todos.js';
 import resumeRoutes from './routes/resume.js';
 import dailyRoutes from './routes/daily.js';
 import mcqRoutes from './routes/mcq.js';
+import userRoutes from './routes/user.js';
 
-dotenv.config();
 connectDB();
 
 const app = express();
@@ -25,6 +25,7 @@ app.use('/api/todos', todoRoutes);
 app.use('/api/resume', resumeRoutes);
 app.use('/api/daily', dailyRoutes);
 app.use('/api/mcq', mcqRoutes);
+app.use('/api/user', userRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => res.json({ status: 'ok', message: 'Prepx API running' }));

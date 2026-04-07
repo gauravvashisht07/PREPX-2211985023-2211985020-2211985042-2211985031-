@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react';
 import api from '../api/axios.js';
 import { useToast } from '../context/ToastContext.jsx';
 import { Skeleton } from '../components/Skeleton.jsx';
-import { Plus, Trash2, Check } from 'lucide-react';
+import { Plus, Trash2, Check, Filter, Calendar, Tag, AlertCircle } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 
 const FILTERS = ['All', 'Today', 'Pending', 'Completed'];
 const todayStr = () => new Date().toISOString().slice(0, 10);
@@ -56,90 +57,209 @@ export default function TodoPlanner() {
     return true;
   });
 
-  const pending = todos.filter(t => !t.completed).length;
-  const done = todos.filter(t => t.completed).length;
+  const pendingCount = todos.filter(t => !t.completed).length;
+  const doneCount = todos.filter(t => t.completed).length;
   const priorityColors = { high: '#ef4444', medium: '#f59e0b', low: '#10b981' };
 
   return (
-    <div style={{ animation: 'fadeInUp 0.4s ease' }}>
-      <div className="section-header">
-        <h1 className="section-title">To-Do Planner</h1>
-        <p className="section-sub">{pending} pending · {done} completed</p>
+    <div className="animate-fade-up">
+      <div className="section-header" style={{ marginBottom: '40px' }}>
+        <h1 className="section-title">Preparation Planner</h1>
+        <p className="section-sub">
+          <span style={{ color: 'var(--accent)', fontWeight: 700 }}>{pendingCount}</span> pending tasks · {doneCount} completed
+        </p>
       </div>
 
-      <div className="todo-layout">
+      <div className="todo-layout" style={{ display: 'grid', gridTemplateColumns: '350px 1fr', gap: '32px' }}>
         <aside>
-          <div className="glass" style={{ padding: 20 }}>
-            <h3 style={{ fontSize: '1rem', marginBottom: 16 }}>➕ Add Task</h3>
+          <motion.div 
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            className="glass-strong" 
+            style={{ padding: '28px', position: 'sticky', top: '100px' }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '24px' }}>
+                <Plus size={20} color="var(--accent)" />
+                <h3 style={{ fontSize: '1.2rem', fontWeight: 800 }}>New Task</h3>
+            </div>
             <form onSubmit={create}>
-              <div className="form-group">
-                <label className="label">Task</label>
-                <input id="todo-title" className="input" placeholder="e.g. Solve 5 DP problems" value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} required />
+              <div className="form-group" style={{ marginBottom: '20px' }}>
+                <label className="label" style={{ fontSize: '0.75rem', letterSpacing: '0.5px' }}>TITLE</label>
+                <input 
+                  id="todo-title" className="input" 
+                  placeholder="e.g. Solve 5 DP problems" 
+                  value={form.title} 
+                  onChange={e => setForm(f => ({ ...f, title: e.target.value }))} 
+                  required 
+                  style={{ background: 'rgba(255,255,255,0.02)', borderRadius: '10px', padding: '12px 14px' }}
+                />
               </div>
-              <div className="form-group">
-                <label className="label">Priority</label>
-                <div style={{ display: 'flex', gap: 6 }}>
+
+              <div className="form-group" style={{ marginBottom: '20px' }}>
+                <label className="label" style={{ fontSize: '0.75rem', letterSpacing: '0.5px' }}>PRIORITY</label>
+                <div style={{ display: 'flex', gap: '8px' }}>
                   {['high', 'medium', 'low'].map(p => (
-                    <button key={p} type="button" onClick={() => setForm(f => ({ ...f, priority: p }))}
-                      style={{ flex: 1, padding: '7px 0', borderRadius: 8, border: `2px solid ${form.priority === p ? priorityColors[p] : 'var(--border)'}`, background: form.priority === p ? `${priorityColors[p]}22` : 'var(--bg-card)', color: form.priority === p ? priorityColors[p] : 'var(--text-muted)', cursor: 'pointer', fontSize: '0.78rem', fontWeight: 700, textTransform: 'capitalize', transition: 'all 0.15s' }}>
+                    <button 
+                      key={p} type="button" 
+                      onClick={() => setForm(f => ({ ...f, priority: p }))}
+                      style={{ 
+                        flex: 1, padding: '10px 0', borderRadius: '10px', 
+                        border: '1px solid var(--border)',
+                        background: form.priority === p ? `${priorityColors[p]}15` : 'transparent',
+                        color: form.priority === p ? priorityColors[p] : 'var(--text-muted)',
+                        borderColor: form.priority === p ? `${priorityColors[p]}44` : 'var(--border)',
+                        cursor: 'pointer', 
+                        fontSize: '0.78rem', fontWeight: 700, 
+                        textTransform: 'capitalize', transition: '0.2s' 
+                      }}
+                    >
                       {p}
                     </button>
                   ))}
                 </div>
               </div>
-              <div className="form-group">
-                <label className="label">Due Date</label>
-                <input type="date" className="input" value={form.dueDate} onChange={e => setForm(f => ({ ...f, dueDate: e.target.value }))} min={todayStr()} style={{ colorScheme: 'dark' }} />
+
+              <div className="form-group" style={{ marginBottom: '20px' }}>
+                <label className="label" style={{ fontSize: '0.75rem', letterSpacing: '0.5px' }}>DUE DATE</label>
+                <div style={{ position: 'relative' }}>
+                    <Calendar size={14} color="var(--text-muted)" style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)' }} />
+                    <input 
+                      type="date" className="input" 
+                      value={form.dueDate} 
+                      onChange={e => setForm(f => ({ ...f, dueDate: e.target.value }))} 
+                      min={todayStr()} 
+                      style={{ paddingLeft: '36px', background: 'rgba(255,255,255,0.02)', borderRadius: '10px' }} 
+                    />
+                </div>
               </div>
-              <div className="form-group">
-                <label className="label">Topic (optional)</label>
-                <input className="input" placeholder="e.g. DSA, OS" value={form.topic} onChange={e => setForm(f => ({ ...f, topic: e.target.value }))} />
+
+              <div className="form-group" style={{ marginBottom: '28px' }}>
+                <label className="label" style={{ fontSize: '0.75rem', letterSpacing: '0.5px' }}>TOPIC</label>
+                <div style={{ position: 'relative' }}>
+                    <Tag size={14} color="var(--text-muted)" style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)' }} />
+                    <input 
+                      className="input" 
+                      placeholder="e.g. DSA, OS" 
+                      value={form.topic} 
+                      onChange={e => setForm(f => ({ ...f, topic: e.target.value }))} 
+                      style={{ paddingLeft: '36px', background: 'rgba(255,255,255,0.02)', borderRadius: '10px' }}
+                    />
+                </div>
               </div>
-              <button id="todo-submit" type="submit" className="btn btn-primary w-full" style={{ justifyContent: 'center', marginTop: 4 }}>
-                <Plus size={16} /> Add Task
+
+              <button id="todo-submit" type="submit" className="btn btn-primary btn-glow w-full" style={{ padding: '14px', borderRadius: '12px' }}>
+                <Plus size={18} /> Add to Schedule
               </button>
             </form>
-          </div>
+          </motion.div>
         </aside>
 
         <div>
-          <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', gap: '8px', marginBottom: '24px', flexWrap: 'wrap' }}>
             {FILTERS.map(f => (
-              <button key={f} className={`filter-chip ${filter === f ? 'active' : ''}`} onClick={() => setFilter(f)}>{f}</button>
+              <button 
+                key={f} 
+                className={`btn ${filter === f ? 'btn-primary' : 'btn-ghost'}`} 
+                onClick={() => setFilter(f)}
+                style={{ padding: '8px 16px', borderRadius: '10px', fontSize: '0.85rem' }}
+              >
+                {f}
+              </button>
             ))}
           </div>
 
           {loading ? (
-            Array.from({ length: 4 }).map((_, i) => (
-              <div key={i} style={{ padding: '14px 16px', marginBottom: 8 }} className="glass">
-                <Skeleton height={16} width="70%" />
-              </div>
-            ))
+            Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} height={80} style={{ marginBottom: 12 }} />)
           ) : filtered.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: 60, color: 'var(--text-muted)' }}>
-              <div style={{ fontSize: '3rem', marginBottom: 12 }}>✅</div>
-              <p>{filter === 'Completed' ? 'No completed tasks yet.' : 'No tasks here. Add one!'}</p>
+            <motion.div 
+               initial={{ opacity: 0 }}
+               animate={{ opacity: 1 }}
+               style={{ textAlign: 'center', padding: '100px 40px', color: 'var(--text-muted)' }}
+            >
+              <div style={{ fontSize: '4rem', marginBottom: '16px', opacity: 0.5 }}>✨</div>
+              <h3 style={{ fontSize: '1.2rem', color: 'var(--text-primary)', marginBottom: '8px' }}>All caught up!</h3>
+              <p>No tasks found for "{filter}". Start planning your prep.</p>
+            </motion.div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <AnimatePresence initial={false}>
+                {filtered.map(todo => (
+                  <motion.div 
+                    layout
+                    key={todo._id} 
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, x: -20 }}
+                    className="glass" 
+                    style={{ 
+                        padding: '18px 24px', 
+                        display: 'flex', 
+                        alignItems: 'center', 
+                        gap: '20px',
+                        borderLeft: `4px solid ${todo.completed ? 'var(--text-muted)' : priorityColors[todo.priority]}`,
+                        transition: '0.3s'
+                    }}
+                  >
+                    <button 
+                      onClick={() => toggle(todo)} 
+                      style={{ 
+                        background: 'none', border: 'none', padding: 0, cursor: 'pointer', 
+                        color: todo.completed ? 'var(--success)' : 'var(--text-muted)',
+                        flexShrink: 0 
+                      }}
+                    >
+                      <div style={{ 
+                        width: '24px', height: '24px', borderRadius: '7px', 
+                        border: `2px solid ${todo.completed ? 'var(--success)' : 'var(--border)'}`,
+                        display: 'flex', alignItems: 'center', justifyCenter: 'center',
+                        background: todo.completed ? `${priorityColors.low}22` : 'transparent'
+                      }}>
+                        {todo.completed && <Check size={16} strokeWidth={3} style={{ margin: '0 auto' }} />}
+                      </div>
+                    </button>
+
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ 
+                        fontSize: '1.05rem', fontWeight: 600, 
+                        textDecoration: todo.completed ? 'line-through' : 'none',
+                        color: todo.completed ? 'var(--text-muted)' : 'var(--text-primary)',
+                        transition: '0.3s'
+                      }}>
+                        {todo.title}
+                      </div>
+                      <div style={{ display: 'flex', gap: '12px', marginTop: '6px', flexWrap: 'wrap', alignItems: 'center' }}>
+                        {todo.topic && (
+                            <span style={{ fontSize: '0.75rem', fontWeight: 700, background: 'rgba(124, 58, 237, 0.1)', color: 'var(--accent)', padding: '2px 8px', borderRadius: '6px' }}>
+                                {todo.topic}
+                            </span>
+                        )}
+                        {todo.dueDate && (
+                            <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                <Calendar size={12} /> {todo.dueDate}
+                            </span>
+                        )}
+                        <span style={{ fontSize: '0.7rem', textTransform: 'uppercase', fontWeight: 800, color: priorityColors[todo.priority], letterSpacing: '0.5px' }}>
+                            {todo.priority}
+                        </span>
+                      </div>
+                    </div>
+
+                    <button 
+                      onClick={() => remove(todo._id)} 
+                      className="btn-ghost"
+                      style={{ 
+                        width: '36px', height: '36px', borderRadius: '8px', border: 'none', 
+                        background: 'none', color: 'var(--text-muted)', cursor: 'pointer', 
+                        flexShrink: 0, display: 'flex', alignItems: 'center', justifyCenter: 'center' 
+                      }}
+                    >
+                      <Trash2 size={16} style={{ margin: '0 auto' }} />
+                    </button>
+                  </motion.div>
+                ))}
+              </AnimatePresence>
             </div>
-          ) : filtered.map(todo => (
-            <div key={todo._id} className={`todo-item ${todo.completed ? 'done' : ''}`}>
-              <div className="priority-dot" style={{ background: priorityColors[todo.priority] || '#f59e0b' }} />
-              <button onClick={() => toggle(todo)} style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', color: todo.completed ? '#10b981' : 'var(--text-muted)', flexShrink: 0 }}>
-                <div className={`todo-checkbox ${todo.completed ? 'checked' : ''}`}>
-                  {todo.completed && <Check size={13} color="#fff" strokeWidth={3} />}
-                </div>
-              </button>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div className={`todo-title ${todo.completed ? 'done-text' : ''}`}>{todo.title}</div>
-                <div style={{ display: 'flex', gap: 8, marginTop: 3, flexWrap: 'wrap' }}>
-                  {todo.topic && <span className="badge badge-primary" style={{ fontSize: '0.7rem' }}>{todo.topic}</span>}
-                  {todo.dueDate && <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>📅 {todo.dueDate}</span>}
-                </div>
-              </div>
-              <button onClick={() => remove(todo._id)} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: 4, borderRadius: 6, flexShrink: 0 }}>
-                <Trash2 size={15} />
-              </button>
-            </div>
-          ))}
+          )}
         </div>
       </div>
     </div>

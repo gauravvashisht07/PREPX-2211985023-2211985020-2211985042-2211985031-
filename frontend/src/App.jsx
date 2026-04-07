@@ -1,11 +1,12 @@
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { AuthProvider } from './context/AuthContext.jsx';
 import { ToastProvider } from './context/ToastContext.jsx';
 import ErrorBoundary from './components/ErrorBoundary.jsx';
 import ProtectedRoute from './components/ProtectedRoute.jsx';
 import ThreeBackground from './components/ThreeBackground.jsx';
 import Sidebar from './components/Sidebar.jsx';
+import NavBar from './components/NavBar.jsx';
 import Login from './pages/Login.jsx';
 import Signup from './pages/Signup.jsx';
 import Dashboard from './pages/Dashboard.jsx';
@@ -18,40 +19,57 @@ import DailyChallenge from './pages/DailyChallenge.jsx';
 import CompanyWise from './pages/CompanyWise.jsx';
 import Notes from './pages/Notes.jsx';
 import TodoPlanner from './pages/TodoPlanner.jsx';
-import { Bell } from 'lucide-react';
+import Profile from './pages/Profile.jsx';
+import { AnimatePresence, motion } from 'framer-motion';
 
-const pageTitles = {
-  '/dashboard': 'Dashboard', '/questions': 'Question Bank', '/mcq': 'MCQ Practice',
-  '/mock': 'Mock Interview', '/daily': 'Daily Challenge',
-  '/progress': 'My Progress', '/companies': 'Company-Wise',
-  '/resume': 'Resume Builder', '/notes': 'Notes & Roadmap',
-  '/todos': 'To-Do Planner',
+const pageVariants = {
+  initial: { opacity: 0, y: 10 },
+  animate: { opacity: 1, y: 0 },
+  exit: { opacity: 0, y: -10 }
 };
 
 function AppShell({ children }) {
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [collapsed, setCollapsed] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
   const location = useLocation();
-  const title = pageTitles[location.pathname] || 'Prepx';
+
+  // Close mobile menu on route change
+  useEffect(() => {
+    setMobileOpen(false);
+  }, [location.pathname]);
 
   return (
-    <div className="app-shell">
-      <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
-      <div className="main-content" style={{ position: 'relative', zIndex: 1 }}>
-        <header className="topbar">
-          <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-            <button className="hamburger" onClick={() => setSidebarOpen(v => !v)} aria-label="Toggle menu">
-              <span /><span /><span />
-            </button>
-            <span className="topbar-title">{title}</span>
-          </div>
-          <div className="topbar-actions">
-            <button style={{ background: 'none', border: '1px solid var(--border)', borderRadius: '8px', padding: '7px 9px', cursor: 'pointer', color: 'var(--text-secondary)' }}>
-              <Bell size={17} />
-            </button>
-          </div>
-        </header>
-        <main className="page-content">
-          <ErrorBoundary>{children}</ErrorBoundary>
+    <div className={`layout-container ${collapsed ? 'sidebar-collapsed' : 'sidebar-expanded'}`}>
+      <Sidebar 
+        collapsed={collapsed} 
+        setCollapsed={setCollapsed} 
+        open={mobileOpen} 
+        onClose={() => setMobileOpen(false)} 
+      />
+      
+      {mobileOpen && (
+        <div 
+          className="sidebar-overlay" 
+          onClick={() => setMobileOpen(false)} 
+          style={{ display: 'block', position: 'fixed', inset: 0, zIndex: 90, background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)' }}
+        />
+      )}
+
+      <div className="main-wrapper">
+        <NavBar onMenuClick={() => setMobileOpen(true)} />
+        <main className="page-content" style={{ padding: '24px', flex: 1 }}>
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={location.pathname}
+              variants={pageVariants}
+              initial="initial"
+              animate="animate"
+              exit="exit"
+              transition={{ duration: 0.3, ease: 'easeOut' }}
+            >
+              <ErrorBoundary>{children}</ErrorBoundary>
+            </motion.div>
+          </AnimatePresence>
         </main>
       </div>
     </div>
@@ -87,6 +105,7 @@ export default function App() {
                 <Route path="/companies" element={<ProtectedShell><CompanyWise /></ProtectedShell>} />
                 <Route path="/notes" element={<ProtectedShell><Notes /></ProtectedShell>} />
                 <Route path="/todos" element={<ProtectedShell><TodoPlanner /></ProtectedShell>} />
+                <Route path="/profile" element={<ProtectedShell><Profile /></ProtectedShell>} />
                 <Route path="*" element={<Navigate to="/dashboard" replace />} />
               </Routes>
             </div>

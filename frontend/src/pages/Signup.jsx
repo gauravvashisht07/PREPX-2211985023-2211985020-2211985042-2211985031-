@@ -1,30 +1,30 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
-import { Eye, EyeOff, Loader2, CheckCircle, XCircle } from 'lucide-react';
+import { Eye, EyeOff, Loader2, UserPlus, CheckCircle, XCircle, Sparkles, Shield } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 
 function PasswordStrength({ password }) {
   const checks = [
-    { label: 'At least 6 characters', ok: password.length >= 6 },
-    { label: 'Contains a number', ok: /\d/.test(password) },
-    { label: 'Contains a letter', ok: /[a-zA-Z]/.test(password) },
+    { label: '6+ Characters', ok: password.length >= 6 },
+    { label: 'Numerical Digit', ok: /\d/.test(password) },
+    { label: 'Alpha Sequence', ok: /[a-zA-Z]/.test(password) },
   ];
   if (!password) return null;
   const score = checks.filter(c => c.ok).length;
-  const color = score === 3 ? '#10b981' : score === 2 ? '#f59e0b' : '#ef4444';
-  const label = score === 3 ? 'Strong' : score === 2 ? 'Medium' : 'Weak';
+  const color = score === 3 ? 'var(--success)' : score === 2 ? 'var(--warning)' : 'var(--danger)';
 
   return (
-    <div style={{ marginTop: 8 }}>
-      <div style={{ display: 'flex', gap: 4, marginBottom: 6 }}>
+    <div style={{ marginTop: 20 }}>
+      <div style={{ display: 'flex', gap: 6, marginBottom: 12 }}>
         {[0, 1, 2].map(i => (
-          <div key={i} style={{ flex: 1, height: 4, borderRadius: 99, background: i < score ? color : 'rgba(255,255,255,0.08)', transition: 'background 0.3s' }} />
+          <div key={i} style={{ flex: 1, height: 4, borderRadius: 99, background: i < score ? color : 'rgba(255,255,255,0.05)', transition: '0.3s' }} />
         ))}
       </div>
-      <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+      <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
         {checks.map(c => (
-          <span key={c.label} style={{ fontSize: '0.72rem', color: c.ok ? '#10b981' : 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: 3 }}>
-            {c.ok ? <CheckCircle size={11} /> : <XCircle size={11} />} {c.label}
+          <span key={c.label} style={{ fontSize: '0.7rem', color: c.ok ? 'var(--text-primary)' : 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: 6, fontWeight: 600 }}>
+            {c.ok ? <CheckCircle size={12} color="var(--success)" /> : <XCircle size={12} color="var(--text-muted)" />} {c.label}
           </span>
         ))}
       </div>
@@ -48,8 +48,8 @@ export default function Signup() {
     e.preventDefault();
     setError('');
     if (!isValidEmail(form.email)) return setError('Please enter a valid email address');
-    if (form.password !== form.confirm) return setError('Passwords do not match');
-    if (form.password.length < 6) return setError('Password must be at least 6 characters');
+    if (form.password !== form.confirm) return setError('Encryption keys do not match');
+    if (form.password.length < 6) return setError('Key must be at least 6 characters');
     setLoading(true);
     try {
       await signup(form.name, form.email, form.password);
@@ -60,63 +60,177 @@ export default function Signup() {
   };
 
   return (
-    <div className="auth-page">
-      <div className="auth-card" style={{ animation: 'fadeInUp 0.5s ease' }}>
-        <div className="auth-logo">
-          <h1 className="gradient-text" style={{ fontFamily: 'var(--font-display)', fontSize: '2.5rem', fontWeight: 800 }}>Prepx</h1>
-          <p style={{ color: 'var(--text-secondary)', marginTop: 6 }}>Create your account and start preparing!</p>
+    <div className="auth-page flex justify-center items-center" style={{ 
+      minHeight: '100vh', 
+      padding: '40px 20px',
+      background: 'radial-gradient(circle at 50% 50%, rgba(124, 58, 237, 0.1) 0%, transparent 50%)',
+      overflowX: 'hidden',
+      position: 'relative'
+    }}>
+      {/* Background Accents */}
+      <div style={{ position: 'absolute', top: '15%', left: '-5%', width: '350px', height: '350px', borderRadius: '50%', background: 'var(--primary)', filter: 'blur(120px)', opacity: 0.1, zIndex: 0 }} />
+      <div style={{ position: 'absolute', bottom: '15%', right: '-5%', width: '350px', height: '350px', borderRadius: '50%', background: 'var(--secondary)', filter: 'blur(120px)', opacity: 0.1, zIndex: 0 }} />
+
+      <motion.div 
+        initial={{ opacity: 0, y: 30 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.8 }}
+        style={{ width: '100%', maxWidth: '520px', zIndex: 10 }}
+      >
+        {/* Branding */}
+        <div style={{ textAlign: 'center', marginBottom: '40px' }}>
+          <motion.div 
+            initial={{ scale: 0.8, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ delay: 0.2 }}
+            style={{ 
+              width: '64px', 
+              height: '64px', 
+              background: 'linear-gradient(135deg, var(--primary), var(--secondary))',
+              borderRadius: '16px',
+              margin: '0 auto 20px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              boxShadow: '0 0 30px rgba(124, 58, 237, 0.3)',
+              color: '#fff',
+              fontSize: '2rem',
+              fontWeight: 900
+            }}
+          >
+            P
+          </motion.div>
+          <h1 style={{ fontSize: '2.2rem', fontWeight: 800, fontFamily: 'var(--font-display)', letterSpacing: '2px', marginBottom: '8px' }}>
+            JOIN THE <span className="gradient-text">STUDIO</span>
+          </h1>
+          <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem' }}>Engineer your future with elite-level preparation</p>
         </div>
 
-        {error && (
-          <div style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)', borderRadius: 10, padding: '10px 14px', marginBottom: 16, color: '#f87171', fontSize: '0.87rem', display: 'flex', gap: 8, alignItems: 'center' }}>
-            <XCircle size={16} /> {error}
+        {/* Signup Card */}
+        <div className="glass-strong" style={{ 
+          padding: '48px', 
+          boxShadow: '0 50px 100px -20px rgba(0,0,0,0.5)',
+          border: '1px solid rgba(255,255,255,0.1)'
+        }}>
+          <div style={{ marginBottom: '32px' }}>
+            <h2 style={{ fontSize: '1.6rem', fontWeight: 800, marginBottom: '8px' }}>Create Protocol</h2>
+            <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Initialize your professional mastery journey</p>
           </div>
-        )}
 
-        <form onSubmit={submit}>
-          <div className="form-group">
-            <label className="label">Full Name</label>
-            <input id="signup-name" name="name" type="text" className="input" placeholder="Arjun Sharma" value={form.name} onChange={handle} required autoComplete="name" />
-          </div>
-          <div className="form-group">
-            <label className="label">Email</label>
-            <input id="signup-email" name="email" type="email" className="input"
-              placeholder="you@college.edu" value={form.email} onChange={handle} required autoComplete="email"
-              style={{ borderColor: form.email && !isValidEmail(form.email) ? 'rgba(239,68,68,0.6)' : undefined }}
-            />
-            {form.email && !isValidEmail(form.email) && (
-              <div style={{ fontSize: '0.75rem', color: '#f87171', marginTop: 4 }}>Invalid email format</div>
+          <AnimatePresence>
+            {error && (
+              <motion.div 
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                style={{ 
+                    padding: '14px', 
+                    background: 'rgba(239, 68, 68, 0.05)', 
+                    border: '1px solid rgba(239, 68, 68, 0.3)', 
+                    borderRadius: '12px', 
+                    marginBottom: '24px', 
+                    color: 'var(--danger)', 
+                    fontSize: '0.85rem',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '10px'
+                }}
+              >
+                <XCircle size={18} />
+                {error}
+              </motion.div>
             )}
-          </div>
-          <div className="form-row">
-            <div className="form-group" style={{ position: 'relative' }}>
-              <label className="label">Password</label>
-              <input id="signup-password" name="password" type={showPw ? 'text' : 'password'} className="input"
-                placeholder="Min 6 chars" value={form.password} onChange={handle} required />
-              <button type="button" onClick={() => setShowPw(v => !v)} style={{ position: 'absolute', right: 12, bottom: 12, background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}>
-                {showPw ? <EyeOff size={17} /> : <Eye size={17} />}
-              </button>
-              <PasswordStrength password={form.password} />
-            </div>
+          </AnimatePresence>
+
+          <form onSubmit={submit} className="flex flex-col gap-20">
             <div className="form-group">
-              <label className="label">Confirm</label>
-              <input id="signup-confirm" name="confirm" type={showPw ? 'text' : 'password'} className="input"
-                placeholder="Repeat" value={form.confirm} onChange={handle} required
-                style={{ borderColor: form.confirm && form.confirm !== form.password ? 'rgba(239,68,68,0.6)' : form.confirm && form.confirm === form.password ? 'rgba(16,185,129,0.6)' : undefined }}
+              <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '10px' }}>
+                Full Name
+              </label>
+              <input 
+                type="text" name="name" placeholder="Arjun Sharma"
+                value={form.name} onChange={handle} required 
+                className="input"
+                style={{ background: 'rgba(0,0,0,0.2)', borderColor: 'rgba(255,255,255,0.1)', padding: '14px 18px', borderRadius: '14px' }}
               />
             </div>
+
+            <div className="form-group">
+              <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '10px' }}>
+                Email Correspondence
+              </label>
+              <input 
+                type="email" name="email" placeholder="name@example.com"
+                value={form.email} onChange={handle} required 
+                className="input"
+                style={{ background: 'rgba(0,0,0,0.2)', borderColor: 'rgba(255,255,255,0.1)', padding: '14px 18px', borderRadius: '14px' }}
+              />
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+              <div className="form-group">
+                <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '10px' }}>
+                  Encryption
+                </label>
+                <div style={{ position: 'relative' }}>
+                  <input 
+                    type={showPw ? 'text' : 'password'} name="password" placeholder="••••••••"
+                    value={form.password} onChange={handle} required 
+                    className="input"
+                    style={{ background: 'rgba(0,0,0,0.2)', borderColor: 'rgba(255,255,255,0.1)', padding: '14px 18px', borderRadius: '14px' }}
+                  />
+                  <button type="button" onClick={() => setShowPw(!showPw)} style={{ position: 'absolute', right: '14px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}>
+                    {showPw ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
+                </div>
+              </div>
+              <div className="form-group">
+                <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '10px' }}>
+                  Verify Key
+                </label>
+                <input 
+                  type={showPw ? 'text' : 'password'} name="confirm" placeholder="••••••••"
+                  value={form.confirm} onChange={handle} required 
+                  className="input"
+                  style={{ background: 'rgba(0,0,0,0.2)', borderColor: 'rgba(255,255,255,0.1)', padding: '14px 18px', borderRadius: '14px' }}
+                />
+              </div>
+            </div>
+
+            <PasswordStrength password={form.password} />
+
+            <button 
+                type="submit" 
+                className="btn btn-primary btn-glow" 
+                disabled={loading}
+                style={{ 
+                    width: '100%', padding: '16px', borderRadius: '14px', fontSize: '1rem',
+                    fontWeight: 700, marginTop: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px'
+                }}
+            >
+              {loading ? <Loader2 size={22} className="animate-spin" /> : <UserPlus size={22} />}
+              {loading ? 'Creating Identity...' : 'Join Protocol'}
+            </button>
+          </form>
+
+          <div style={{ marginTop: '32px', textAlign: 'center', fontSize: '0.9rem' }}>
+            <span style={{ color: 'var(--text-muted)' }}>Already registered?</span>{' '}
+            <Link to="/login" className="gradient-text" style={{ fontWeight: 800, textDecoration: 'none' }}>
+              Sign In
+            </Link>
           </div>
-
-          <button id="signup-submit" type="submit" className="btn btn-primary w-full" style={{ justifyContent: 'center', marginTop: 8 }} disabled={loading}>
-            {loading ? <Loader2 size={18} style={{ animation: 'spin 1s linear infinite' }} /> : null}
-            {loading ? 'Creating account…' : 'Create Account'}
-          </button>
-        </form>
-
-        <div className="auth-footer" style={{ marginTop: 20 }}>
-          Already have an account? <Link to="/login">Sign in</Link>
         </div>
-      </div>
+
+        {/* Security Badges */}
+        <div style={{ marginTop: '32px', display: 'flex', justifyContent: 'center', gap: '32px', opacity: 0.5 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.75rem', fontWeight: 600 }}>
+                <Shield size={14} color="var(--success)" /> End-to-End Secure
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.75rem', fontWeight: 600 }}>
+                <CheckCircle size={14} color="var(--success)" /> Verified Engineering Track
+            </div>
+        </div>
+      </motion.div>
     </div>
   );
 }
