@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import api from '../api/axios.js';
 import { useToast } from '../context/ToastContext.jsx';
 import { StatCardSkeleton, Skeleton } from '../components/Skeleton.jsx';
@@ -10,13 +11,17 @@ export default function Progress() {
   const [progress, setProgress] = useState(null);
   const [loading, setLoading] = useState(true);
 
+  const location = useLocation();
+
   useEffect(() => {
+    console.log('[Progress] Fetching analytics data:', location.key);
     const controller = new AbortController();
+    setLoading(true);
     api.get('/progress', { signal: controller.signal })
       .then(r => { setProgress(r.data); setLoading(false); })
       .catch(err => { if (err.name !== 'CanceledError') { setLoading(false); toast.error('Failed to load progress'); } });
     return () => controller.abort();
-  }, []);
+  }, [location.pathname]);
 
   const days = Array.from({ length: 30 }, (_, i) => {
     const d = new Date(); d.setDate(d.getDate() - (29 - i));

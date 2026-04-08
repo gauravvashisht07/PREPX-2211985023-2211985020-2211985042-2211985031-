@@ -63,21 +63,32 @@ export default function TodoPlanner() {
 
   return (
     <div className="animate-fade-up">
-      <div className="section-header" style={{ marginBottom: '40px' }}>
+      <div className="section-header page-content" style={{ marginBottom: '40px' }}>
         <h1 className="section-title">Preparation Planner</h1>
         <p className="section-sub">
           <span style={{ color: 'var(--accent)', fontWeight: 700 }}>{pendingCount}</span> pending tasks · {doneCount} completed
         </p>
       </div>
 
-      <div className="todo-layout" style={{ display: 'grid', gridTemplateColumns: '350px 1fr', gap: '32px' }}>
-        <aside>
+      <div className="flex-col-mobile" id="todo-grid" style={{ display: 'grid', gridTemplateColumns: '350px 1fr', gap: '32px' }}>
+        <style>{`
+          @media (max-width: 900px) {
+            #todo-grid { grid-template-columns: 1fr !important; gap: 24px !important; }
+          }
+        `}</style>
+        <aside className="w-full-mobile">
           <motion.div 
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
             className="glass-strong" 
             style={{ padding: '28px', position: 'sticky', top: '100px' }}
+            id="todo-sidebar-card"
           >
+            <style>{`
+              @media (max-width: 900px) {
+                #todo-sidebar-card { position: static !important; padding: 20px !important; }
+              }
+            `}</style>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '24px' }}>
                 <Plus size={20} color="var(--accent)" />
                 <h3 style={{ fontSize: '1.2rem', fontWeight: 800 }}>New Task</h3>
@@ -91,7 +102,7 @@ export default function TodoPlanner() {
                   value={form.title} 
                   onChange={e => setForm(f => ({ ...f, title: e.target.value }))} 
                   required 
-                  style={{ background: 'rgba(255,255,255,0.02)', borderRadius: '10px', padding: '12px 14px' }}
+                  style={{ padding: '12px 14px' }}
                 />
               </div>
 
@@ -154,14 +165,14 @@ export default function TodoPlanner() {
           </motion.div>
         </aside>
 
-        <div>
-          <div style={{ display: 'flex', gap: '8px', marginBottom: '24px', flexWrap: 'wrap' }}>
+        <div className="w-full-mobile">
+          <div style={{ display: 'flex', gap: '8px', marginBottom: '24px', flexWrap: 'nowrap', overflowX: 'auto', paddingBottom: '8px' }} className="custom-scrollbar">
             {FILTERS.map(f => (
               <button 
                 key={f} 
                 className={`btn ${filter === f ? 'btn-primary' : 'btn-ghost'}`} 
                 onClick={() => setFilter(f)}
-                style={{ padding: '8px 16px', borderRadius: '10px', fontSize: '0.85rem' }}
+                style={{ padding: '8px 16px', borderRadius: '10px', fontSize: '0.8rem', whiteSpace: 'nowrap', flexShrink: 0 }}
               >
                 {f}
               </button>
@@ -190,12 +201,12 @@ export default function TodoPlanner() {
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, x: -20 }}
-                    className="glass" 
+                    className="glass flex-col-mobile" 
                     style={{ 
-                        padding: '18px 24px', 
+                        padding: '16px 20px', 
                         display: 'flex', 
                         alignItems: 'center', 
-                        gap: '20px',
+                        gap: '16px',
                         borderLeft: `4px solid ${todo.completed ? 'var(--text-muted)' : priorityColors[todo.priority]}`,
                         transition: '0.3s'
                     }}

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import api from '../api/axios.js';
 import { dailyChallenges } from '../data/dailyChallenges.js';
 import { useToast } from '../context/ToastContext.jsx';
@@ -13,13 +14,17 @@ export default function DailyChallenge() {
   const [completing, setCompleting] = useState(false);
   const [loading, setLoading] = useState(true);
 
+  const location = useLocation();
+
   useEffect(() => {
+    console.log('[DailyChallenge] Activating protocol:', location.key);
     const controller = new AbortController();
+    setLoading(true);
     api.get('/daily/challenge', { signal: controller.signal })
       .then(r => { setDailyInfo(r.data); setLoading(false); })
       .catch(err => { if (err.name !== 'CanceledError') { setLoading(false); toast.error('Failed to load challenge'); } });
     return () => controller.abort();
-  }, []);
+  }, [location.pathname]);
 
   const challenge = dailyInfo ? dailyChallenges[dailyInfo.challengeIndex] : null;
 

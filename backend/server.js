@@ -9,6 +9,7 @@ import resumeRoutes from './routes/resume.js';
 import dailyRoutes from './routes/daily.js';
 import mcqRoutes from './routes/mcq.js';
 import userRoutes from './routes/user.js';
+import aiRoutes from './routes/ai.js';
 
 connectDB();
 
@@ -26,6 +27,7 @@ app.use('/api/resume', resumeRoutes);
 app.use('/api/daily', dailyRoutes);
 app.use('/api/mcq', mcqRoutes);
 app.use('/api/user', userRoutes);
+app.use('/api/ai', aiRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => res.json({ status: 'ok', message: 'Prepx API running' }));

@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-route
 import { useState, useEffect } from 'react';
 import { AuthProvider } from './context/AuthContext.jsx';
 import { ToastProvider } from './context/ToastContext.jsx';
+import { NotificationProvider } from './context/NotificationContext.jsx';
 import ErrorBoundary from './components/ErrorBoundary.jsx';
 import ProtectedRoute from './components/ProtectedRoute.jsx';
 import ThreeBackground from './components/ThreeBackground.jsx';
@@ -47,20 +48,12 @@ function AppShell({ children }) {
         onClose={() => setMobileOpen(false)} 
       />
       
-      {mobileOpen && (
-        <div 
-          className="sidebar-overlay" 
-          onClick={() => setMobileOpen(false)} 
-          style={{ display: 'block', position: 'fixed', inset: 0, zIndex: 90, background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)' }}
-        />
-      )}
-
       <div className="main-wrapper">
         <NavBar onMenuClick={() => setMobileOpen(true)} />
         <main className="page-content" style={{ padding: '24px', flex: 1 }}>
           <AnimatePresence mode="wait">
             <motion.div
-              key={location.pathname}
+              key={location.key}
               variants={pageVariants}
               initial="initial"
               animate="animate"
@@ -88,29 +81,31 @@ export default function App() {
   return (
     <ErrorBoundary>
       <AuthProvider>
-        <ToastProvider>
-          <BrowserRouter>
-            <ThreeBackground />
-            <div style={{ position: 'relative', zIndex: 1, minHeight: '100vh' }}>
-              <Routes>
-                <Route path="/login" element={<Login />} />
-                <Route path="/signup" element={<Signup />} />
-                <Route path="/dashboard" element={<ProtectedShell><Dashboard /></ProtectedShell>} />
-                <Route path="/questions" element={<ProtectedShell><QuestionBank /></ProtectedShell>} />
-                <Route path="/mcq" element={<ProtectedShell><MCQ /></ProtectedShell>} />
-                <Route path="/mock" element={<ProtectedShell><MockInterview /></ProtectedShell>} />
-                <Route path="/resume" element={<ProtectedShell><ResumeBuilder /></ProtectedShell>} />
-                <Route path="/progress" element={<ProtectedShell><Progress /></ProtectedShell>} />
-                <Route path="/daily" element={<ProtectedShell><DailyChallenge /></ProtectedShell>} />
-                <Route path="/companies" element={<ProtectedShell><CompanyWise /></ProtectedShell>} />
-                <Route path="/notes" element={<ProtectedShell><Notes /></ProtectedShell>} />
-                <Route path="/todos" element={<ProtectedShell><TodoPlanner /></ProtectedShell>} />
-                <Route path="/profile" element={<ProtectedShell><Profile /></ProtectedShell>} />
-                <Route path="*" element={<Navigate to="/dashboard" replace />} />
-              </Routes>
-            </div>
-          </BrowserRouter>
-        </ToastProvider>
+        <NotificationProvider>
+          <ToastProvider>
+            <BrowserRouter>
+              <ThreeBackground />
+              <div style={{ position: 'relative', zIndex: 1, minHeight: '100vh' }}>
+                <Routes>
+                  <Route path="/login" element={<Login />} />
+                  <Route path="/signup" element={<Signup />} />
+                  <Route path="/dashboard" element={<ProtectedShell><Dashboard /></ProtectedShell>} />
+                  <Route path="/questions" element={<ProtectedShell><QuestionBank /></ProtectedShell>} />
+                  <Route path="/mcq" element={<ProtectedShell><MCQ /></ProtectedShell>} />
+                  <Route path="/mock" element={<ProtectedShell><MockInterview /></ProtectedShell>} />
+                  <Route path="/resume" element={<ProtectedShell><ResumeBuilder /></ProtectedShell>} />
+                  <Route path="/progress" element={<ProtectedShell><Progress /></ProtectedShell>} />
+                  <Route path="/daily" element={<ProtectedShell><DailyChallenge /></ProtectedShell>} />
+                  <Route path="/companies" element={<ProtectedShell><CompanyWise /></ProtectedShell>} />
+                  <Route path="/notes" element={<ProtectedShell><Notes /></ProtectedShell>} />
+                  <Route path="/todos" element={<ProtectedShell><TodoPlanner /></ProtectedShell>} />
+                  <Route path="/profile" element={<ProtectedShell><Profile /></ProtectedShell>} />
+                  <Route path="*" element={<Navigate to="/dashboard" replace />} />
+                </Routes>
+              </div>
+            </BrowserRouter>
+          </ToastProvider>
+        </NotificationProvider>
       </AuthProvider>
     </ErrorBoundary>
   );

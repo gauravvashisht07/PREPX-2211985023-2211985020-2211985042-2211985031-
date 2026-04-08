@@ -79,8 +79,13 @@ export default function MockInterview() {
         <p className="section-sub">Simulate high-pressure technical interviews with real-time feedback.</p>
       </div>
 
-      <div className="mock-layout" style={{ maxWidth: '800px', margin: '0 auto' }}>
-        <div className="glass-strong" style={{ padding: '40px' }}>
+      <div className="mock-layout page-content" style={{ maxWidth: '800px', margin: '0 auto' }}>
+        <div className="glass-strong" style={{ padding: '32px' }} id="mock-setup-card">
+          <style>{`
+            @media (max-width: 768px) {
+              #mock-setup-card { padding: 20px !important; }
+            }
+          `}</style>
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '32px' }}>
             <div className="feature-icon-wrapper" style={{ marginBottom: 0, width: '40px', height: '40px' }}>
                <Settings2 size={20} />
@@ -157,12 +162,12 @@ export default function MockInterview() {
         exit="exit"
         className="animate-fade-up"
       >
-        <div className="mock-session" style={{ maxWidth: '900px', margin: '0 auto' }}>
+        <div className="mock-session page-content" style={{ maxWidth: '900px', margin: '0 auto' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px' }}>
             <div style={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--text-secondary)' }}>
                 Step <span className="gradient-text" style={{ fontSize: '1.2rem', fontWeight: 800 }}>{idx + 1}</span> of {sessionQs.length}
             </div>
-            <div style={{ width: '250px', background: 'rgba(255,255,255,0.05)', height: '8px', borderRadius: '4px', overflow: 'hidden' }}>
+            <div style={{ width: '250px', maxWidth: '40%', background: 'rgba(255,255,255,0.05)', height: '8px', borderRadius: '4px', overflow: 'hidden' }}>
               <motion.div 
                  initial={{ width: 0 }}
                  animate={{ width: `${((idx + 1) / sessionQs.length) * 100}%` }}
@@ -171,9 +176,14 @@ export default function MockInterview() {
             </div>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 340px', gap: '32px' }}>
+          <div className="flex-col-mobile" style={{ display: 'grid', gridTemplateColumns: '1fr 340px', gap: '32px' }}>
             <div className="flex flex-col gap-24">
-              <div className="glass-strong" style={{ padding: '32px' }}>
+              <div className="glass-strong" style={{ padding: '32px' }} id="mock-q-card">
+                <style>{`
+                  @media (max-width: 768px) {
+                    #mock-q-card { padding: 20px !important; }
+                  }
+                `}</style>
                 <div style={{ display: 'flex', gap: '8px', marginBottom: '16px' }}>
                   <span className={`badge badge-${q.topic.toLowerCase()}`} style={{ background: 'rgba(124, 58, 237, 0.1)', color: 'var(--accent)' }}>{q.topic}</span>
                   <span className={`badge badge-${q.difficulty.toLowerCase()}`}>{q.difficulty}</span>
@@ -233,9 +243,9 @@ export default function MockInterview() {
                 </AnimatePresence>
               </div>
               
-              <div style={{ display: 'flex', gap: '16px', justifyContent: 'flex-end' }}>
-                <button className="btn btn-ghost" onClick={() => { stopTimer(); setPhase('results'); }} style={{ borderRadius: '12px' }}>End Studio</button>
-                <button id="mock-next" className="btn btn-primary btn-glow" onClick={next} style={{ borderRadius: '12px', padding: '12px 40px' }}>
+              <div style={{ display: 'flex', gap: '16px', justifyContent: 'flex-end' }} className="flex-col-mobile">
+                <button className="btn btn-ghost w-full-mobile order-2-mobile" onClick={() => { stopTimer(); setPhase('results'); }} style={{ borderRadius: '12px' }}>End Studio</button>
+                <button id="mock-next" className="btn btn-primary btn-glow w-full-mobile order-1-mobile" onClick={next} style={{ borderRadius: '12px', padding: '12px 40px' }}>
                   {idx + 1 === sessionQs.length ? <><CheckCircle size={18} /> Finish Session</> : <><SkipForward size={18} /> Next Protocol</>}
                 </button>
               </div>
@@ -306,7 +316,7 @@ export default function MockInterview() {
       variants={containerVariants}
       initial="initial"
       animate="animate"
-      className="animate-fade-up"
+      className="animate-fade-up page-content"
       style={{ maxWidth: '800px', margin: '0 auto', textAlign: 'center' }}
     >
       <div style={{ position: 'relative', width: 'fit-content', margin: '0 auto 40px' }}>
@@ -314,10 +324,13 @@ export default function MockInterview() {
           <Trophy size={80} color="var(--primary)" style={{ position: 'relative' }} />
       </div>
       
-      <h1 className="hero-title" style={{ fontSize: '3rem', marginBottom: '12px' }}>Session Debrief</h1>
+      <h1 className="hero-title" style={{ fontSize: '3rem', marginBottom: '12px' }} id="debrief-title">
+        <style>{`@media (max-width: 768px) { #debrief-title { font-size: 2.2rem !important; } }`}</style>
+        Session Debrief
+      </h1>
       <p style={{ color: 'var(--text-secondary)', marginBottom: '48px', fontSize: '1.1rem' }}>Excellent focus. Your session data has been compiled below.</p>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '20px', marginBottom: '40px' }}>
+      <div className="grid-res-4" style={{ marginBottom: '40px' }}>
         {[
           { label: 'Modules', value: sessionQs.length, icon: BookOpen, color: 'var(--accent)' },
           { label: 'Audited', value: ratedCount, icon: CheckCircle, color: 'var(--success)' },
@@ -353,9 +366,9 @@ export default function MockInterview() {
         ))}
       </div>
 
-      <div style={{ display: 'flex', gap: '16px', justifyContent: 'center' }}>
-          <button className="btn btn-ghost btn-lg" onClick={() => setPhase('setup')} style={{ borderRadius: '12px' }}>New Session</button>
-          <Link to="/notes" className="btn btn-primary btn-glow btn-lg" style={{ borderRadius: '12px', padding: '12px 48px', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '8px' }}>
+      <div style={{ display: 'flex', gap: '16px', justifyContent: 'center' }} className="flex-col-mobile">
+          <button className="btn btn-ghost btn-lg w-full-mobile order-2-mobile" onClick={() => setPhase('setup')} style={{ borderRadius: '12px' }}>New Session</button>
+          <Link to="/notes" className="btn btn-primary btn-glow btn-lg w-full-mobile order-1-mobile" style={{ borderRadius: '12px', padding: '12px 48px', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '8px', justifyContent: 'center' }}>
             View Preparation Roadmap <ChevronRight size={18} />
           </Link>
       </div>

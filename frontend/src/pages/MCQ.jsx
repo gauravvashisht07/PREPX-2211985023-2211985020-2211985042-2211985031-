@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { useLocation } from 'react-router-dom';
 import { mcqQuestions, mcqTopics, mcqDifficulties } from '../data/mcqQuestions.js';
 import api from '../api/axios.js';
 import { useToast } from '../context/ToastContext.jsx';
@@ -23,8 +24,12 @@ export default function MCQ() {
     return () => clearTimeout(timer);
   }, [search]);
 
+  const location = useLocation();
+
   useEffect(() => {
+    console.log('[MCQ] Syncing assessment data:', location.key);
     const controller = new AbortController();
+    setLoading(true);
     api.get('/mcq', { signal: controller.signal })
       .then(r => {
         setAttempted(r.data.attemptedQuestions || []);
@@ -37,7 +42,7 @@ export default function MCQ() {
       })
       .catch(err => { if (err.name !== 'CanceledError') setLoading(false); });
     return () => controller.abort();
-  }, []);
+  }, [location.pathname]);
 
   const filtered = mcqQuestions.filter(q =>
     (topic === 'All' || q.topic === topic) &&
@@ -81,14 +86,19 @@ export default function MCQ() {
 
   return (
     <div className="animate-fade-up">
-      <div className="section-header" style={{ marginBottom: '40px' }}>
+      <div className="section-header page-content" style={{ marginBottom: '40px' }}>
         <h1 className="section-title">MCQ Assessment</h1>
         <p className="section-sub">Validate your conceptual depth with precision-targeted assessments.</p>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(200px, 280px) 1fr', gap: '32px' }}>
-        <aside>
-          <div className="glass-strong" style={{ padding: '24px', position: 'sticky', top: '100px' }}>
+      <div className="flex-col-mobile" style={{ display: 'grid', gridTemplateColumns: 'minmax(200px, 280px) 1fr', gap: '32px' }}>
+        <aside className="w-full-mobile">
+          <div className="glass-strong" style={{ padding: '24px', position: 'sticky', top: '100px' }} id="mcq-sidebar">
+            <style>{`
+              @media (max-width: 768px) {
+                #mcq-sidebar { position: static !important; margin-bottom: 24px; padding: 16px !important; }
+              }
+            `}</style>
             <div style={{ marginBottom: '32px', textAlign: 'center' }}>
                 <div style={{ fontSize: '2.5rem', fontWeight: 800, color: 'var(--accent)' }}>{correctCount}</div>
                 <div style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '1px' }}>Total Successes</div>
@@ -104,7 +114,6 @@ export default function MCQ() {
               <input 
                 className="input" placeholder="Search parameters..." 
                 value={search} onChange={e => setSearch(e.target.value)} 
-                style={{ background: 'rgba(0,0,0,0.2)', borderRadius: '10px' }}
               />
             </div>
 
@@ -143,7 +152,7 @@ export default function MCQ() {
           </div>
         </aside>
 
-        <div className="flex flex-col gap-16">
+        <div className="flex flex-col gap-16 w-full-mobile">
           {loading ? (
             Array.from({ length: 5 }).map((_, i) => <QuestionSkeleton key={i} />)
           ) : filtered.length === 0 ? (
@@ -159,21 +168,24 @@ export default function MCQ() {
                 <div key={q.id} className="glass" style={{ padding: 0, overflow: 'hidden', borderLeft: isDone ? `4px solid ${isCorrect ? 'var(--success)' : 'var(--danger)'}` : '1px solid var(--border)' }}>
                     <div 
                         onClick={() => setExpanded(isOpen ? null : q.id)}
-                        style={{ padding: '24px', cursor: 'pointer', display: 'flex', alignItems: 'start', gap: '20px' }}
+                        className="flex-col-mobile"
+                        style={{ padding: '20px', cursor: 'pointer', display: 'flex', alignItems: 'start', gap: '20px' }}
                     >
-                        <div style={{ marginTop: '2px' }}>
-                            {isDone ? (
-                                isCorrect ? <CheckCircle size={22} color="var(--success)" /> : <HelpCircle size={22} color="var(--danger)" />
-                            ) : <Circle size={22} color="var(--border)" />}
-                        </div>
-                        <div style={{ flex: 1 }}>
-                            <div style={{ display: 'flex', gap: '10px', marginBottom: '12px' }}>
-                                <span className="badge" style={{ background: 'rgba(255,255,255,0.05)', color: 'var(--text-muted)', fontSize: '0.7rem' }}>{q.topic}</span>
-                                <span className={`badge badge-${q.difficulty.toLowerCase()}`}>{q.difficulty}</span>
+                        <div className="flex items-start gap-16" style={{ flex: 1 }}>
+                            <div style={{ marginTop: '2px', flexShrink: 0 }}>
+                                {isDone ? (
+                                    isCorrect ? <CheckCircle size={22} color="var(--success)" /> : <HelpCircle size={22} color="var(--danger)" />
+                                ) : <Circle size={22} color="var(--border)" />}
                             </div>
-                            <h3 style={{ fontSize: '1rem', fontWeight: 600, lineHeight: 1.5, color: isDone ? 'var(--text-secondary)' : 'var(--text-primary)' }}>{q.question}</h3>
+                            <div style={{ flex: 1 }}>
+                                <div style={{ display: 'flex', gap: '10px', marginBottom: '12px' }}>
+                                    <span className="badge" style={{ background: 'rgba(255,255,255,0.05)', color: 'var(--text-muted)', fontSize: '0.7rem' }}>{q.topic}</span>
+                                    <span className={`badge badge-${q.difficulty.toLowerCase()}`}>{q.difficulty}</span>
+                                </div>
+                                <h3 style={{ fontSize: '0.95rem', fontWeight: 600, lineHeight: 1.5, color: isDone ? 'var(--text-secondary)' : 'var(--text-primary)' }}>{q.question}</h3>
+                            </div>
                         </div>
-                        <div style={{ transform: isOpen ? 'rotate(180deg)' : 'none', transition: '0.3s', color: 'var(--text-muted)' }}>
+                        <div style={{ transform: isOpen ? 'rotate(180deg)' : 'none', transition: '0.3s', color: 'var(--text-muted)', marginLeft: 'auto' }} className="mt-8-mobile">
                             <ChevronDown size={20} />
                         </div>
                     </div>
@@ -181,8 +193,18 @@ export default function MCQ() {
                     <AnimatePresence>
                         {isOpen && (
                             <motion.div initial={{ height: 0 }} animate={{ height: 'auto' }} exit={{ height: 0 }} style={{ overflow: 'hidden' }}>
-                                <div style={{ padding: '0 24px 24px 66px' }}>
-                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '24px' }}>
+                                <div id={`mcq-ws-${q.id}`} style={{ padding: '0 24px 24px 66px' }}>
+                                    <style>{`
+                                        @media (max-width: 768px) {
+                                            #mcq-ws-${q.id} { padding: 0 16px 20px 16px !important; }
+                                        }
+                                    `}</style>
+                                    <div className="grid-res-2" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '24px' }} id={`mcq-opts-${q.id}`}>
+                                        <style>{`
+                                            @media (max-width: 640px) {
+                                                #mcq-opts-${q.id} { grid-template-columns: 1fr !important; }
+                                            }
+                                        `}</style>
                                         {q.options.map((opt, i) => (
                                             <button 
                                                 key={i} 
@@ -193,7 +215,7 @@ export default function MCQ() {
                                                     background: selected === i ? (isCorrect ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)') : 'rgba(255,255,255,0.02)',
                                                     border: `1px solid ${selected === i ? (isCorrect ? 'var(--success)' : 'var(--danger)') : 'var(--border)'}`,
                                                     color: selected === i ? (isCorrect ? 'var(--success)' : 'var(--danger)') : 'var(--text-primary)',
-                                                    fontSize: '0.9rem', transition: '0.2s', display: 'flex', gap: '12px'
+                                                    fontSize: '0.85rem', transition: '0.2s', display: 'flex', gap: '12px'
                                                 }}
                                             >
                                                 <span style={{ fontWeight: 800, opacity: 0.5 }}>{String.fromCharCode(65+i)}</span>

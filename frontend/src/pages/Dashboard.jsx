@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
 import api from '../api/axios.js';
 import { StatCardSkeleton } from '../components/Skeleton.jsx';
 import { BookOpen, Flame, Target, Award, ArrowRight, Zap, Code2, Users, Trophy, BarChart2, Star } from 'lucide-react';
 import { motion } from 'framer-motion';
+import AIInsightsCard from '../components/AIInsightsCard.jsx';
 
 const features = [
   { to: '/questions', title: 'Question Bank', desc: '45+ curated technical questions across core CS fundamentals.', icon: BookOpen, color: '#a78bfa' },
@@ -35,14 +36,21 @@ export default function Dashboard() {
   const [progress, setProgress] = useState(null);
   const [loading, setLoading] = useState(true);
 
+  const location = useLocation();
+
   useEffect(() => {
+    console.log('[Dashboard] Mounting / Fetching fresh data:', location.key);
     const controller = new AbortController();
+    setLoading(true);
     api.get('/progress', { signal: controller.signal })
-      .then(r => setProgress(r.data))
+      .then(r => {
+        console.log('[Dashboard] Data loaded:', r.data.solvedQuestions?.length, 'solved');
+        setProgress(r.data);
+      })
       .catch(() => {})
       .finally(() => setLoading(false));
     return () => controller.abort();
-  }, []);
+  }, [location.pathname]);
 
   const solved = progress?.solvedQuestions?.length || 0;
   const streak = progress?.streak || 0;
@@ -50,7 +58,7 @@ export default function Dashboard() {
   return (
     <div className="dashboard-container">
       {/* Hero Section */}
-      <section className="hero-section" style={{ minHeight: '60vh', padding: '60px 40px' }}>
+      <section className="hero-section" style={{ minHeight: '60vh' }}>
         <motion.div 
           className="hero-content"
           initial={{ opacity: 0, x: -30 }}
@@ -67,11 +75,11 @@ export default function Dashboard() {
             Welcome back, <span style={{ color: 'var(--text-primary)', fontWeight: 700 }}>{user?.name?.split(' ')[0] || 'User'}</span>. 
             Prepx is your high-performance studio for mastering technical interviews with precision and speed.
           </p>
-          <div className="flex gap-16" style={{ marginTop: '20px' }}>
-            <Link to="/questions" className="btn btn-primary btn-glow btn-lg" style={{ borderRadius: '12px' }}>
+          <div className="flex gap-16 flex-col-mobile" style={{ marginTop: '20px' }}>
+            <Link to="/questions" className="btn btn-primary btn-glow btn-lg w-full-mobile" style={{ borderRadius: '12px' }}>
               Explore Questions <ArrowRight size={18} />
             </Link>
-            <Link to="/mock" className="btn btn-ghost btn-lg" style={{ borderRadius: '12px' }}>
+            <Link to="/mock" className="btn btn-ghost btn-lg w-full-mobile" style={{ borderRadius: '12px' }}>
               Practice Mock
             </Link>
           </div>
@@ -123,10 +131,9 @@ export default function Dashboard() {
       </section>
 
       {/* Stats Section */}
-      <section style={{ padding: '0 40px 60px' }}>
+      <section style={{ padding: '0 40px 60px' }} className="page-content">
         <motion.div 
-          className="stats-grid" 
-          style={{ gridTemplateColumns: 'repeat(4, 1fr)', gap: '24px' }}
+          className="grid-res-4" 
           variants={containerVariants}
           initial="hidden"
           animate="visible"
@@ -154,16 +161,24 @@ export default function Dashboard() {
           ))}
         </motion.div>
       </section>
+      {/* AI Insights Section */}
+      <section style={{ padding: '0 40px 40px' }} className="page-content">
+        <div style={{ marginBottom: '20px' }}>
+          <h2 style={{ fontSize: '1.4rem', fontWeight: 800 }}>AI Insights</h2>
+          <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>Personalized recommendations based on your activity.</p>
+        </div>
+        <AIInsightsCard progress={progress} />
+      </section>
 
       {/* Feature Section */}
-      <section style={{ padding: '40px' }}>
+      <section style={{ padding: '40px' }} className="page-content">
         <div style={{ marginBottom: '32px' }}>
             <h2 style={{ fontSize: '1.8rem', fontWeight: 800 }}>Explore Studio</h2>
             <p style={{ color: 'var(--text-muted)' }}>Curated paths to master every aspect of your preparation.</p>
         </div>
 
         <motion.div 
-          className="feature-grid"
+          className="grid-res-3"
           style={{ padding: 0 }}
           variants={containerVariants}
           initial="hidden"

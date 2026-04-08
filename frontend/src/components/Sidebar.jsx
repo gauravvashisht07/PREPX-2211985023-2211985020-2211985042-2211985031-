@@ -34,43 +34,55 @@ const sidebarGroups = [
   }
 ];
 
-export default function Sidebar({ collapsed, setCollapsed }) {
+export default function Sidebar({ collapsed, setCollapsed, open, onClose }) {
   return (
-    <aside className={`sidebar-container ${collapsed ? 'collapsed' : 'expanded'}`} style={{ width: collapsed ? 'var(--sidebar-collapsed-w)' : 'var(--sidebar-w)' }}>
-      <div className="sidebar-header">
-        <div className="logo-box">P</div>
-        {!collapsed && <span className="logo-text">PREPX</span>}
-      </div>
+    <>
+      {/* Overlay for mobile drawer */}
+      <div 
+        className={`sidebar-overlay ${open ? 'visible' : ''}`} 
+        onClick={onClose}
+      />
 
-      <nav className="nav-list custom-scrollbar">
-        {sidebarGroups.map((group, idx) => (
-          <div key={idx} style={{ marginBottom: '24px' }}>
-            {!collapsed && <div className="nav-section-title" style={{ fontSize: '0.7rem', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: '12px', paddingLeft: '14px', letterSpacing: '1px', fontWeight: 700 }}>{group.title}</div>}
-            {group.items.map(({ to, icon: Icon, label }) => (
-              <NavLink
-                key={to}
-                to={to}
-                className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
-                title={collapsed ? label : ''}
-              >
-                <Icon size={20} className="nav-icon" strokeWidth={collapsed ? 2 : 1.5} />
-                {!collapsed && <span>{label}</span>}
-              </NavLink>
-            ))}
-          </div>
-        ))}
-      </nav>
+      <aside 
+        className={`sidebar-container ${collapsed ? 'collapsed' : 'expanded'} ${open ? 'mobile-open' : ''}`} 
+        style={{ width: collapsed ? 'var(--sidebar-collapsed-w)' : 'var(--sidebar-w)' }}
+      >
+        <div className="sidebar-header">
+          <div className="logo-box">P</div>
+          {!collapsed && <span className="logo-text">PREPX</span>}
+        </div>
 
-      <div className="sidebar-footer" style={{ marginTop: 'auto', padding: '16px', borderTop: '1px solid var(--border)' }}>
-        <button 
-          onClick={() => setCollapsed(!collapsed)}
-          className="btn-ghost"
-          style={{ width: '100%', justifyContent: collapsed ? 'center' : 'space-between', padding: '8px', border: 'none', background: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center' }}
-        >
-          {!collapsed && <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>Collapse</span>}
-          {collapsed ? <ChevronRight size={20} color="var(--text-secondary)" /> : <ChevronLeft size={20} color="var(--text-secondary)" />}
-        </button>
-      </div>
-    </aside>
+        <nav className="nav-list custom-scrollbar">
+          {sidebarGroups.map((group, idx) => (
+            <div key={idx} style={{ marginBottom: '24px' }}>
+              {!collapsed && <div className="nav-section-title" style={{ fontSize: '0.7rem', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: '12px', paddingLeft: '14px', letterSpacing: '1px', fontWeight: 700 }}>{group.title}</div>}
+              {group.items.map(({ to, icon: Icon, label }) => (
+                <NavLink
+                  key={to}
+                  to={to}
+                  onClick={() => { if (window.innerWidth <= 768) onClose(); }}
+                  className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
+                  title={collapsed ? label : ''}
+                >
+                  <Icon size={20} className="nav-icon" strokeWidth={collapsed ? 2 : 1.5} />
+                  {!collapsed && <span>{label}</span>}
+                </NavLink>
+              ))}
+            </div>
+          ))}
+        </nav>
+
+        <div className="sidebar-footer" style={{ marginTop: 'auto', padding: '16px', borderTop: '1px solid var(--border)' }}>
+          <button 
+            onClick={() => setCollapsed(!collapsed)}
+            className="btn-ghost hidden md:flex"
+            style={{ width: '100%', justifyContent: collapsed ? 'center' : 'space-between', padding: '8px', border: 'none', background: 'none', cursor: 'pointer', alignItems: 'center' }}
+          >
+            {!collapsed && <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>Collapse</span>}
+            {collapsed ? <ChevronRight size={20} color="var(--text-secondary)" /> : <ChevronLeft size={20} color="var(--text-secondary)" />}
+          </button>
+        </div>
+      </aside>
+    </>
   );
 }

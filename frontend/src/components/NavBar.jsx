@@ -2,11 +2,15 @@ import { useAuth } from '../context/AuthContext.jsx';
 import { Search, Bell, LogOut, User, Menu, Settings } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useState } from 'react';
+import { useNotifications } from '../context/NotificationContext.jsx';
+import NotificationDropdown from './NotificationDropdown.jsx';
 
 export default function NavBar({ onMenuClick }) {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [showUserMenu, setShowUserMenu] = useState(false);
+  const [showNotifications, setShowNotifications] = useState(false);
+  const { unreadCount } = useNotifications();
 
   const handleLogout = () => {
     logout();
@@ -32,9 +36,20 @@ export default function NavBar({ onMenuClick }) {
       </div>
 
       <div className="nav-actions">
-        <button className="btn-ghost" style={{ border: 'none', background: 'none', padding: '8px', cursor: 'pointer' }}>
-          <Bell size={20} color="var(--text-secondary)" />
-        </button>
+        <div style={{ position: 'relative' }}>
+          <button 
+            onClick={() => setShowNotifications(!showNotifications)}
+            className="btn-ghost" 
+            style={{ border: 'none', background: 'none', padding: '8px', cursor: 'pointer', position: 'relative' }}
+          >
+            <Bell size={20} color="var(--text-secondary)" />
+            {unreadCount > 0 && <span className="notification-badge" />}
+          </button>
+
+          {showNotifications && (
+            <NotificationDropdown onClose={() => setShowNotifications(false)} />
+          )}
+        </div>
         
         <div className="user-profile-container" style={{ position: 'relative' }}>
           <button 

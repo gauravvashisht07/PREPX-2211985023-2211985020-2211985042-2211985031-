@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
 import api from '../api/axios.js';
 import { useToast } from '../context/ToastContext.jsx';
@@ -15,8 +16,12 @@ export default function Profile() {
   const [stats, setStats] = useState(null);
   const [loadingStats, setLoadingStats] = useState(true);
 
+  const location = useLocation();
+
   useEffect(() => {
+    console.log('[Profile] Syncing user profile statistics:', location.key);
     const fetchStats = async () => {
+      setLoadingStats(true);
       try {
         const res = await api.get('/user/stats');
         setStats(res.data);
@@ -27,7 +32,7 @@ export default function Profile() {
       }
     };
     fetchStats();
-  }, []);
+  }, [location.pathname]);
 
   const tabs = [
     { id: 'overview', label: 'Overview', icon: BookOpen },
@@ -43,7 +48,7 @@ export default function Profile() {
       <section className="glass-strong" style={{ padding: '40px', borderRadius: '32px', marginBottom: '32px', position: 'relative', overflow: 'hidden' }}>
         <div style={{ position: 'absolute', top: '-100px', right: '-100px', width: '300px', height: '300px', background: 'var(--primary)', filter: 'blur(120px)', opacity: 0.15 }} />
         
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '40px', alignItems: 'center', position: 'relative', zIndex: 1 }}>
+        <div className="flex items-center gap-40 flex-col-mobile" style={{ position: 'relative', zIndex: 1 }}>
           <div style={{ position: 'relative' }}>
             <div className="avatar-large" style={{ width: '140px', height: '140px', fontSize: '3rem', cursor: 'default' }}>
                 {user?.avatar ? <img src={user.avatar} alt={user.name} style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }} /> : userInitial}
@@ -53,12 +58,12 @@ export default function Profile() {
             </button>
           </div>
 
-          <div style={{ flex: 1 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
+          <div style={{ flex: 1 }} className="flex flex-col items-center-mobile text-center-mobile">
+            <div className="flex items-center gap-12 mb-8 justify-center-mobile">
                 <h1 style={{ fontSize: '2.4rem', fontWeight: 800 }}>{user?.name}</h1>
                 <span className="badge badge-success" style={{ padding: '4px 12px', fontSize: '0.75rem' }}>{user?.role || 'Student'}</span>
             </div>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '20px', color: 'var(--text-muted)', fontSize: '0.95rem' }}>
+            <div className="flex flex-wrap gap-20 color-text-muted justify-center-mobile" style={{ fontSize: '0.95rem' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><Mail size={16} /> {user?.email}</div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><Target size={16} /> {user?.targetRole || 'Full Stack Developer'}</div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><Shield size={16} /> {user?.skillLevel || 'Intermediate'}</div>
@@ -74,7 +79,7 @@ export default function Profile() {
       </section>
 
       {/* Stats Quick View */}
-      <div className="stats-grid" style={{ gridTemplateColumns: 'repeat(4, 1fr)', gap: '24px', marginBottom: '32px' }}>
+      <div className="grid-res-4" style={{ marginBottom: '32px' }}>
         {[
           { label: 'Solved Questions', value: stats?.solvedQuestions || 0, icon: Award, color: '#a78bfa' },
           { label: 'Current Streak', value: `${stats?.streak || 0}d`, icon: Zap, color: '#f59e0b' },
