@@ -19,7 +19,7 @@ export default function Profile() {
   const location = useLocation();
 
   useEffect(() => {
-    console.log('[Profile] Syncing user profile statistics:', location.key);
+    window.scrollTo(0, 0);
     const fetchStats = async () => {
       setLoadingStats(true);
       try {
@@ -47,33 +47,33 @@ export default function Profile() {
       {/* Header / Hero Section */}
       <section className="glass-strong" style={{ padding: '40px', borderRadius: '32px', marginBottom: '32px', position: 'relative', overflow: 'hidden' }}>
         <div style={{ position: 'absolute', top: '-100px', right: '-100px', width: '300px', height: '300px', background: 'var(--primary)', filter: 'blur(120px)', opacity: 0.15 }} />
-        
+
         <div className="flex items-center gap-40 flex-col-mobile" style={{ position: 'relative', zIndex: 1 }}>
           <div style={{ position: 'relative' }}>
             <div className="avatar-large" style={{ width: '140px', height: '140px', fontSize: '3rem', cursor: 'default' }}>
-                {user?.avatar ? <img src={user.avatar} alt={user.name} style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }} /> : userInitial}
+              {user?.avatar ? <img src={user.avatar} alt={user.name} style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }} /> : userInitial}
             </div>
             <button className="btn-ghost" style={{ position: 'absolute', bottom: '5px', right: '5px', padding: '10px', borderRadius: '50%', background: 'var(--accent)', border: 'none', cursor: 'pointer' }}>
-                <Camera size={18} color="white" />
+              <Camera size={18} color="white" />
             </button>
           </div>
 
           <div style={{ flex: 1 }} className="flex flex-col items-center-mobile text-center-mobile">
             <div className="flex items-center gap-12 mb-8 justify-center-mobile">
-                <h1 style={{ fontSize: '2.4rem', fontWeight: 800 }}>{user?.name}</h1>
-                <span className="badge badge-success" style={{ padding: '4px 12px', fontSize: '0.75rem' }}>{user?.role || 'Student'}</span>
+              <h1 style={{ fontSize: '2.4rem', fontWeight: 800 }}>{user?.name}</h1>
+              <span className="badge badge-success" style={{ padding: '4px 12px', fontSize: '0.75rem' }}>{user?.role || 'Student'}</span>
             </div>
             <div className="flex flex-wrap gap-20 color-text-muted justify-center-mobile" style={{ fontSize: '0.95rem' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><Mail size={16} /> {user?.email}</div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><Target size={16} /> {user?.targetRole || 'Full Stack Developer'}</div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><Shield size={16} /> {user?.skillLevel || 'Intermediate'}</div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><Mail size={16} /> {user?.email}</div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><Target size={16} /> {user?.targetRole || 'Full Stack Developer'}</div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><Shield size={16} /> {user?.skillLevel || 'Intermediate'}</div>
             </div>
           </div>
 
           <div className="hidden lg:flex" style={{ gap: '16px' }}>
-             <button onClick={logout} className="btn btn-danger" style={{ padding: '12px 24px', borderRadius: '12px' }}>
-                <LogOut size={18} /> Logout
-             </button>
+            <button onClick={logout} className="btn btn-danger" style={{ padding: '12px 24px', borderRadius: '12px' }}>
+              <LogOut size={18} /> Logout
+            </button>
           </div>
         </div>
       </section>
@@ -86,8 +86,8 @@ export default function Profile() {
           { label: 'Accuracy', value: `${stats?.accuracy || 0}%`, icon: Target, color: '#06b6d4' },
           { label: 'Mock Interviews', value: stats?.mockSessionsCount || 0, icon: Clock, color: '#10b981' },
         ].map((stat, i) => (
-          <motion.div 
-            key={i} 
+          <motion.div
+            key={i}
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: i * 0.1 }}
@@ -111,7 +111,7 @@ export default function Profile() {
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
             className={`tab-btn ${activeTab === tab.id ? 'active' : ''}`}
-            style={{ 
+            style={{
               padding: '10px 24px', borderRadius: '12px', border: 'none', background: activeTab === tab.id ? 'var(--primary)' : 'transparent',
               color: activeTab === tab.id ? 'white' : 'var(--text-muted)', cursor: 'pointer', transition: '0.3s', display: 'flex', alignItems: 'center', gap: '10px', fontWeight: 600
             }}

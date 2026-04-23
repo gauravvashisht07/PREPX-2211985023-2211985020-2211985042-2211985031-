@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { questions, topics } from '../data/questions.js';
 import api from '../api/axios.js';
 import { useToast } from '../context/ToastContext.jsx';
@@ -11,16 +11,6 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
-// ─────────────────────────────────────────────────────────────
-//  Per-question state shape:
-//  evaluations[qId] = {
-//    userAnswer : string,
-//    result     : { score, feedback, suggestions } | null,
-//    showAnswer : boolean,
-//    loading    : boolean,
-//    error      : string,
-//  }
-// ─────────────────────────────────────────────────────────────
 const defaultQState = () => ({
   userAnswer: '',
   result: null,
@@ -31,18 +21,20 @@ const defaultQState = () => ({
 
 export default function QuestionBank() {
   const toast = useToast();
-  const [topic, setTopic]                 = useState('All');
-  const [diff, setDiff]                   = useState('All');
-  const [search, setSearch]               = useState('');
-  const [debouncedSearch, setDebounced]   = useState('');
+  const queryClient = useQueryClient();
+  const [topic, setTopic]                 = useState(() => sessionStorage.getItem('qb_topic') || 'All');
+  const [diff, setDiff]                   = useState(() => sessionStorage.getItem('qb_diff') || 'All');
+  const [search, setSearch]               = useState(() => sessionStorage.getItem('qb_search') || '');
+  const [debouncedSearch, setDebounced]   = useState(search);
   const [expanded, setExpanded]           = useState(null);
-  const [solved, setSolved]               = useState([]);
-  const [loading, setLoading]             = useState(true);
+  const [evaluations, setEvaluations]     = useState({});
 
-  // Per-question answer / evaluation state
-  const [evaluations, setEvaluations] = useState({});
+  useEffect(() => {
+    sessionStorage.setItem('qb_topic', topic);
+    sessionStorage.setItem('qb_diff', diff);
+    sessionStorage.setItem('qb_search', search);
+  }, [topic, diff, search]);
 
-  // Helper — update a single field for one question
   const setQState = useCallback((qId, patch) => {
     setEvaluations(prev => ({
       ...prev,
@@ -50,24 +42,45 @@ export default function QuestionBank() {
     }));
   }, []);
 
-  // Debounce search
   useEffect(() => {
     const t = setTimeout(() => setDebounced(search), 300);
     return () => clearTimeout(t);
   }, [search]);
 
-  const location = useLocation();
+  // Fetch Solved Progress
+  const { data: solved, isLoading: loading } = useQuery({
+    queryKey: ['solvedQuestions'],
+    queryFn: async () => {
+      const res = await api.get('/progress');
+      return res.data.solvedQuestions || [];
+    },
+    staleTime: 5 * 60 * 1000,
+  });
 
-  // Fetch solved questions
-  useEffect(() => {
-    console.log('[QuestionBank] Syncing progress:', location.key);
-    const ctrl = new AbortController();
-    setLoading(true);
-    api.get('/progress', { signal: ctrl.signal })
-      .then(r => { setSolved(r.data.solvedQuestions || []); setLoading(false); })
-      .catch(err => { if (err.name !== 'CanceledError') setLoading(false); });
-    return () => ctrl.abort();
-  }, [location.pathname]);
+  // Mutation for toggling solved
+  const { mutate: toggleSolvedMutation } = useMutation({
+    mutationFn: async ({ qId, isSolved }) => {
+      if (isSolved) {
+        await api.delete(`/progress/solved/${qId}`);
+        return { qId, action: 'removed' };
+      } else {
+        const res = await api.post('/progress/solved', { questionId: qId, topic: questions.find(q => q.id === qId).topic });
+        return { qId, action: 'added', solvedList: res.data.solvedQuestions };
+      }
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['solvedQuestions'] });
+      queryClient.invalidateQueries({ queryKey: ['userProgress'] });
+      if (data.action === 'added') toast.success('Question marked as solved! 🎯');
+      else toast.info('Question unmarked');
+    },
+    onError: () => toast.error('Failed to update progress'),
+  });
+
+  const toggleSolved = (q) => {
+    const isSolved = solved?.includes(q.id);
+    toggleSolvedMutation({ qId: q.id, isSolved });
+  };
 
   const filtered = questions.filter(q =>
     (topic === 'All' || q.topic === topic) &&
@@ -75,59 +88,47 @@ export default function QuestionBank() {
     (debouncedSearch === '' || q.question.toLowerCase().includes(debouncedSearch.toLowerCase()))
   );
 
-  // Toggle solved / unsolved
-  const toggleSolved = async (q) => {
-    const isSolved = solved.includes(q.id);
-    try {
-      if (isSolved) {
-        await api.delete(`/progress/solved/${q.id}`);
-        setSolved(s => s.filter(id => id !== q.id));
-        toast.info('Question unmarked');
-      } else {
-        const res = await api.post('/progress/solved', { questionId: q.id, topic: q.topic });
-        setSolved(res.data.solvedQuestions || []);
-        toast.success('Question marked as solved! 🎯');
-      }
-    } catch { toast.error('Failed to update progress'); }
-  };
-
-  // Toggle card expansion; reset per-question state on collapse
   const toggleExpand = (qId) => {
     if (expanded === qId) {
       setExpanded(null);
     } else {
       setExpanded(qId);
-      // Preserve any existing evaluation state when re-opening
       if (!evaluations[qId]) {
         setQState(qId, defaultQState());
       }
     }
   };
 
-  // Call backend evaluation API
-  const handleEvaluate = async (q) => {
-    const qs = evaluations[q.id] || defaultQState();
-    if (!qs.userAnswer.trim()) return;
-
-    setQState(q.id, { loading: true, result: null, error: '', showAnswer: false });
-
-    try {
+  // AI Evaluation Mutation
+  const { mutate: evaluateMutation } = useMutation({
+    mutationFn: async ({ q, userAnswer }) => {
       const { data } = await api.post('/ai/evaluate', {
         question: q.question,
-        userAnswer: qs.userAnswer,
+        userAnswer,
         correctAnswer: q.answer,
       });
-      // After evaluation: reveal the answer + show result
-      setQState(q.id, { loading: false, result: data, showAnswer: true });
-    } catch (err) {
-      setQState(q.id, {
+      return { qId: q.id, result: data };
+    },
+    onMutate: ({ qId }) => {
+      setQState(qId, { loading: true, result: null, error: '', showAnswer: false });
+    },
+    onSuccess: (data) => {
+      setQState(data.qId, { loading: false, result: data.result, showAnswer: true });
+    },
+    onError: (err, { qId }) => {
+      setQState(qId, {
         loading: false,
         error: err.response?.data?.error || 'Evaluation failed. Please try again.',
       });
-    }
+    },
+  });
+
+  const handleEvaluate = (q) => {
+    const qs = evaluations[q.id] || defaultQState();
+    if (!qs.userAnswer.trim()) return;
+    evaluateMutation({ q, userAnswer: qs.userAnswer });
   };
 
-  // Reset a question's workspace
   const handleReset = (qId) => setQState(qId, defaultQState());
 
   const topicCounts = {};
@@ -141,7 +142,7 @@ export default function QuestionBank() {
         <h1 className="section-title">Question Bank</h1>
         <p className="section-sub">
           {filtered.length} questions available ·{' '}
-          <span className="gradient-text" style={{ fontWeight: 700 }}>{solved.length} solved</span>
+          <span className="gradient-text" style={{ fontWeight: 700 }}>{solved?.length || 0} solved</span>
         </p>
       </div>
 
@@ -165,6 +166,7 @@ export default function QuestionBank() {
                 value={search}
                 onChange={e => setSearch(e.target.value)}
                 style={{ fontSize: '0.85rem' }}
+                aria-label="Search questions"
               />
             </div>
 
@@ -179,6 +181,7 @@ export default function QuestionBank() {
                     key={t}
                     className={`nav-link ${topic === t ? 'active' : ''}`}
                     onClick={() => setTopic(t)}
+                    aria-pressed={topic === t}
                     style={{ background: 'none', border: 'none', padding: '10px 12px', fontSize: '0.88rem', justifyContent: 'space-between' }}
                   >
                     <span>{t}</span>
@@ -199,6 +202,7 @@ export default function QuestionBank() {
                     key={d}
                     onClick={() => setDiff(d)}
                     className={`btn ${diff === d ? 'btn-primary' : 'btn-ghost'}`}
+                    aria-pressed={diff === d}
                     style={{ padding: '6px 12px', fontSize: '0.75rem', borderRadius: '8px' }}
                   >
                     {d}
@@ -226,7 +230,7 @@ export default function QuestionBank() {
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
               {filtered.map(q => {
-                const isSolved = solved.includes(q.id);
+                const isSolved = solved?.includes(q.id) || false;
                 const isOpen   = expanded === q.id;
                 const qs       = evaluations[q.id] || defaultQState();
                 const hasAttempted = qs.userAnswer.trim().length > 0;

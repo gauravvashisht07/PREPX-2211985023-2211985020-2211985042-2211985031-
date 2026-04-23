@@ -1,7 +1,8 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useRef } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../api/axios.js';
 import { useToast } from '../context/ToastContext.jsx';
-import { Save, Download, Plus, Trash2, User, GraduationCap, Briefcase, Code2, Tags, ChevronRight, ChevronLeft, FileText, Check } from 'lucide-react';
+import { Save, Download, Plus, Trash2, User, GraduationCap, Briefcase, Code2, Tags, ChevronRight, ChevronLeft, FileText, Check, Loader2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import AIResumeFeedbackPanel from '../components/AIResumeFeedbackPanel.jsx';
 
@@ -23,25 +24,43 @@ const STEPS = [
 
 export default function ResumeBuilder() {
   const toast = useToast();
+  const queryClient = useQueryClient();
   const [data, setData] = useState(defaultData);
   const [step, setStep] = useState(0);
-  const [saving, setSaving] = useState(false);
-  const [saved, setSaved] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
   const previewRef = useRef(null);
 
-  useEffect(() => {
-    api.get('/resume').then(r => {
-      const d = r.data;
-      setData({
+  // Fetch Resume
+  const { isLoading: loading } = useQuery({
+    queryKey: ['resume'],
+    queryFn: async () => {
+      const res = await api.get('/resume');
+      const d = res.data;
+      const merged = {
         personal: d.personal?.name ? d.personal : defaultData.personal,
         education: d.education?.length ? d.education : defaultData.education,
         experience: d.experience || [],
         projects: d.projects?.length ? d.projects : defaultData.projects,
         skills: d.skills?.length ? d.skills : defaultData.skills,
-      });
-    }).catch(() => {});
-  }, []);
+      };
+      setData(merged);
+      return merged;
+    },
+    staleTime: Infinity,
+  });
+
+  // Mutation to save
+  const { mutate: saveMutation, isPending: saving, isSuccess: saved } = useMutation({
+    mutationFn: async (resumeData) => {
+      const res = await api.put('/resume', resumeData);
+      return res.data;
+    },
+    onSuccess: () => {
+      toast.success('Resume synchronized! ✅');
+      queryClient.invalidateQueries({ queryKey: ['resume'] });
+    },
+    onError: () => toast.error('Sync failed. Check connection protocol.')
+  });
 
   const setP = (field, val) => setData(d => ({ ...d, personal: { ...d.personal, [field]: val } }));
 
@@ -52,14 +71,8 @@ export default function ResumeBuilder() {
   const addItem = (key, template) => setData(d => ({ ...d, [key]: [...d[key], template] }));
   const removeItem = (key, idx) => setData(d => ({ ...d, [key]: d[key].filter((_, i) => i !== idx) }));
 
-  const save = async () => {
-    setSaving(true);
-    try {
-      await api.put('/resume', data);
-      setSaved(true); setTimeout(() => setSaved(false), 2000);
-      toast.success('Resume synchronized! ✅');
-    } catch { toast.error('Sync failed'); }
-    setSaving(false);
+  const save = () => {
+    saveMutation(data);
   };
 
   const exportPDF = async () => {

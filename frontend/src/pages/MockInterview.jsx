@@ -1,13 +1,18 @@
 import { useState, useEffect, useRef } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { questions, topics } from '../data/questions.js';
-import { Play, SkipForward, CheckCircle, RefreshCw, Timer, Settings2, Trophy, BarChart3, ChevronRight, BookOpen } from 'lucide-react';
+import api from '../api/axios.js';
+import { useToast } from '../context/ToastContext.jsx';
+import { Play, SkipForward, CheckCircle, RefreshCw, Timer, Settings2, Trophy, BarChart3, ChevronRight, BookOpen, History, Loader2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 function shuffle(arr) { return [...arr].sort(() => Math.random() - 0.5); }
 
 export default function MockInterview() {
-  const [phase, setPhase] = useState('setup');
+  const toast = useToast();
+  const queryClient = useQueryClient();
+  const [phase, setPhase] = useState('setup'); // setup, history, session, results
   const [selTopic, setSelTopic] = useState('All');
   const [count, setCount] = useState(5);
   const [sessionQs, setSessionQs] = useState([]);
@@ -18,6 +23,30 @@ export default function MockInterview() {
   const [userAnswers, setUserAnswers] = useState({});
 
   const timerRef = useRef(null);
+
+  // Fetch History
+  const { data: historyData, isLoading: historyLoading } = useQuery({
+    queryKey: ['mockHistory'],
+    queryFn: async () => {
+      const res = await api.get('/mock/history');
+      return res.data;
+    },
+    enabled: phase === 'setup' || phase === 'history'
+  });
+
+  // Mutation to save session
+  const { mutate: saveSessionMutation, isPending: isSaving } = useMutation({
+    mutationFn: async (sessionData) => {
+      const res = await api.post('/mock', sessionData);
+      return res.data;
+    },
+    onSuccess: () => {
+      toast.success('Interview results synchronized with your profile!');
+      queryClient.invalidateQueries({ queryKey: ['mockHistory'] });
+      queryClient.invalidateQueries({ queryKey: ['userProgress'] });
+    },
+    onError: () => toast.error('Failed to sync interview results')
+  });
 
   const stopTimer = () => {
     if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; }
@@ -40,19 +69,37 @@ export default function MockInterview() {
     const pool = selTopic === 'All' ? questions : questions.filter(q => q.topic === selTopic);
     const picked = shuffle(pool).slice(0, Math.min(count, pool.length));
     setSessionQs(picked);
-    setIdx(0); setRevealed(false); setRatings({});
+    setIdx(0); setRevealed(false); setRatings({}); setUserAnswers({});
     setPhase('session');
     startTimer(120);
   };
 
   const next = () => {
-    if (idx + 1 >= sessionQs.length) { stopTimer(); setPhase('results'); }
+    if (idx + 1 >= sessionQs.length) { 
+        stopTimer(); 
+        setPhase('results');
+        // Auto-save session results
+        const structuredQs = sessionQs.map((q, i) => ({
+            questionText: q.question,
+            userAnswer: userAnswers[i] || '',
+            difficulty: q.difficulty,
+            score: (ratings[i] || 0) * 20, // 1-5 scale to 1-100
+            expectedTopics: q.topic
+        }));
+        
+        saveSessionMutation({
+            questions: structuredQs,
+            totalScore: parseInt(avgRating() * 20),
+            totalQuestions: sessionQs.length,
+            sessionName: `Mock: ${selTopic} (${count} Qs)`
+        });
+    }
     else { setIdx(i => i + 1); setRevealed(false); startTimer(120); }
   };
 
   const avgRating = () => {
     const vals = Object.values(ratings);
-    return vals.length ? (vals.reduce((a, b) => a + b, 0) / vals.length).toFixed(1) : '—';
+    return vals.length ? (vals.reduce((a, b) => a + b, 0) / vals.length) : 0;
   };
 
 
@@ -144,9 +191,14 @@ export default function MockInterview() {
             </div>
           </div>
 
-          <button id="mock-start" className="btn btn-primary btn-glow btn-lg w-full" onClick={start} style={{ borderRadius: '14px', height: '56px', fontSize: '1.1rem' }}>
-            <Play size={20} fill="currentColor" /> Initialize Session
-          </button>
+          <div style={{ display: 'flex', gap: '16px', marginTop: '16px' }}>
+            <button id="mock-start" className="btn btn-primary btn-glow btn-lg" onClick={start} style={{ borderRadius: '14px', height: '56px', fontSize: '1.1rem', flex: 2 }}>
+                <Play size={20} fill="currentColor" /> Initialize Session
+            </button>
+            <button className="btn btn-ghost btn-lg" onClick={() => setPhase('history')} style={{ borderRadius: '14px', height: '56px', flex: 1 }}>
+                <History size={20} /> History
+            </button>
+          </div>
         </div>
       </div>
     </motion.div>
@@ -311,6 +363,55 @@ export default function MockInterview() {
   const ratedCount = Object.keys(ratings).length;
   const highRated = Object.values(ratings).filter(r => r >= 4).length;
   
+  if (phase === 'history') return (
+    <motion.div variants={containerVariants} initial="initial" animate="animate" exit="exit" className="animate-fade-up">
+      <div className="section-header" style={{ marginBottom: '40px' }}>
+        <h1 className="section-title">Session History</h1>
+        <p className="section-sub">Review your past technical performances and growth metrics.</p>
+      </div>
+      <div className="page-content" style={{ maxWidth: '900px', margin: '0 auto' }}>
+        <button className="btn btn-ghost mb-24" onClick={() => setPhase('setup')} style={{ borderRadius: '10px' }}>
+            <ChevronRight size={18} style={{ transform: 'rotate(180deg)' }} /> Back to Studio
+        </button>
+        
+        {historyLoading ? (
+            <div style={{ textAlign: 'center', padding: '100px' }}>
+                <Loader2 className="animate-spin" size={40} color="var(--primary)" style={{ margin: '0 auto' }} />
+                <p style={{ marginTop: '16px', color: 'var(--text-muted)' }}>Retrieving archival records...</p>
+            </div>
+        ) : !historyData || historyData.length === 0 ? (
+            <div className="glass-strong" style={{ padding: '80px', textAlign: 'center' }}>
+                <History size={60} color="var(--text-muted)" style={{ opacity: 0.3, marginBottom: '24px' }} />
+                <h3>No Sessions Recorded</h3>
+                <p>Complete your first mock interview to see analytical records here.</p>
+            </div>
+        ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                {historyData.map((session) => (
+                    <div key={session._id} className="glass" style={{ padding: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <div>
+                            <h3 style={{ fontSize: '1.1rem', fontWeight: 700 }}>{session.sessionName}</h3>
+                            <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '4px' }}>
+                                {new Date(session.completedAt || session.createdAt).toLocaleDateString()} • {session.questions.length} Modules
+                            </div>
+                        </div>
+                        <div style={{ textAlign: 'right', display: 'flex', alignItems: 'center', gap: '32px' }}>
+                            <div>
+                                <div style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--accent)' }}>{session.totalScore}%</div>
+                                <div style={{ fontSize: '0.65rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Efficiency</div>
+                            </div>
+                            <button className="btn btn-ghost" style={{ padding: '8px', borderRadius: '50%' }} aria-label="View Details">
+                                <ChevronRight size={20} />
+                            </button>
+                        </div>
+                    </div>
+                ))}
+            </div>
+        )}
+      </div>
+    </motion.div>
+  );
+
   return (
     <motion.div 
       variants={containerVariants}
@@ -319,59 +420,69 @@ export default function MockInterview() {
       className="animate-fade-up page-content"
       style={{ maxWidth: '800px', margin: '0 auto', textAlign: 'center' }}
     >
-      <div style={{ position: 'relative', width: 'fit-content', margin: '0 auto 40px' }}>
-          <div style={{ width: '100px', height: '100px', borderRadius: '50%', background: 'rgba(124, 58, 237, 0.2)', filter: 'blur(30px)', position: 'absolute', top: 0, left: 0 }} />
-          <Trophy size={80} color="var(--primary)" style={{ position: 'relative' }} />
-      </div>
-      
-      <h1 className="hero-title" style={{ fontSize: '3rem', marginBottom: '12px' }} id="debrief-title">
-        <style>{`@media (max-width: 768px) { #debrief-title { font-size: 2.2rem !important; } }`}</style>
-        Session Debrief
-      </h1>
-      <p style={{ color: 'var(--text-secondary)', marginBottom: '48px', fontSize: '1.1rem' }}>Excellent focus. Your session data has been compiled below.</p>
-
-      <div className="grid-res-4" style={{ marginBottom: '40px' }}>
-        {[
-          { label: 'Modules', value: sessionQs.length, icon: BookOpen, color: 'var(--accent)' },
-          { label: 'Audited', value: ratedCount, icon: CheckCircle, color: 'var(--success)' },
-          { label: 'Performance', value: `${avgRating()}/5`, icon: BarChart3, color: 'var(--secondary)' },
-          { label: 'Mastered', value: highRated, icon: Trophy, color: 'var(--primary)' },
-        ].map((stat, i) => (
-          <div key={i} className="glass" style={{ padding: '24px', borderBottom: `2px solid ${stat.color}44` }}>
-            <div style={{ fontSize: '1.8rem', fontWeight: 800 }}>{stat.value}</div>
-            <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '1px', marginTop: '4px' }}>{stat.label}</div>
+      {isSaving ? (
+          <div style={{ padding: '100px 0' }}>
+               <Loader2 className="animate-spin" size={48} color="var(--primary)" style={{ margin: '0 auto' }} />
+               <h2 style={{ marginTop: '24px' }}>Compiling results...</h2>
+               <p style={{ color: 'var(--text-muted)' }}>We are synchronizing your session with the Prepx cloud.</p>
           </div>
-        ))}
-      </div>
-
-      <div className="glass-strong" style={{ padding: '32px', textAlign: 'left', marginBottom: '40px' }}>
-        <h3 style={{ fontSize: '1.1rem', fontWeight: 800, marginBottom: '24px', display: 'flex', alignItems: 'center', gap: '10px' }}> 
-            <BarChart3 size={18} color="var(--accent)" /> Detailed Protocol Analysis 
-        </h3>
-        {sessionQs.map((q, i) => (
-          <div key={q.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 0', borderBottom: i < sessionQs.length - 1 ? '1px solid var(--border)' : 'none', gap: '24px' }}>
-            <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontWeight: 600, fontSize: '0.95rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{q.question}</div>
-                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '4px' }}>{q.topic} • {q.difficulty}</div>
+      ) : (
+        <>
+            <div style={{ position: 'relative', width: 'fit-content', margin: '0 auto 40px' }}>
+                <div style={{ width: '100px', height: '100px', borderRadius: '50%', background: 'rgba(124, 58, 237, 0.2)', filter: 'blur(30px)', position: 'absolute', top: 0, left: 0 }} />
+                <Trophy size={80} color="var(--primary)" style={{ position: 'relative' }} />
             </div>
-            <div style={{ 
-                width: '44px', height: '44px', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyCenter: 'center',
-                background: ratings[i] >= 4 ? 'rgba(16, 185, 129, 0.1)' : ratings[i] >= 2 ? 'rgba(245, 158, 11, 0.1)' : 'rgba(239, 68, 68, 0.1)',
-                color: ratings[i] >= 4 ? 'var(--success)' : ratings[i] >= 2 ? 'var(--warning)' : 'var(--danger)',
-                fontWeight: 800, flexShrink: 0 
-            }}>
-              <span style={{ margin: '0 auto' }}>{ratings[i] ? ratings[i] : '—'}</span>
-            </div>
-          </div>
-        ))}
-      </div>
+            
+            <h1 className="hero-title" style={{ fontSize: '3rem', marginBottom: '12px' }} id="debrief-title">
+                <style>{`@media (max-width: 768px) { #debrief-title { font-size: 2.2rem !important; } }`}</style>
+                Session Debrief
+            </h1>
+            <p style={{ color: 'var(--text-secondary)', marginBottom: '48px', fontSize: '1.1rem' }}>Excellent focus. Your session data has been compiled below.</p>
 
-      <div style={{ display: 'flex', gap: '16px', justifyContent: 'center' }} className="flex-col-mobile">
-          <button className="btn btn-ghost btn-lg w-full-mobile order-2-mobile" onClick={() => setPhase('setup')} style={{ borderRadius: '12px' }}>New Session</button>
-          <Link to="/notes" className="btn btn-primary btn-glow btn-lg w-full-mobile order-1-mobile" style={{ borderRadius: '12px', padding: '12px 48px', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '8px', justifyContent: 'center' }}>
-            View Preparation Roadmap <ChevronRight size={18} />
-          </Link>
-      </div>
+            <div className="grid-res-4" style={{ marginBottom: '40px' }}>
+                {[
+                { label: 'Modules', value: sessionQs.length, icon: BookOpen, color: 'var(--accent)' },
+                { label: 'Audited', value: ratedCount, icon: CheckCircle, color: 'var(--success)' },
+                { label: 'Performance', value: `${avgRating().toFixed(1)}/5`, icon: BarChart3, color: 'var(--secondary)' },
+                { label: 'Mastered', value: highRated, icon: Trophy, color: 'var(--primary)' },
+                ].map((stat, i) => (
+                <div key={i} className="glass" style={{ padding: '24px', borderBottom: `2px solid ${stat.color}44` }}>
+                    <div style={{ fontSize: '1.8rem', fontWeight: 800 }}>{stat.value}</div>
+                    <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '1px', marginTop: '4px' }}>{stat.label}</div>
+                </div>
+                ))}
+            </div>
+
+            <div className="glass-strong" style={{ padding: '32px', textAlign: 'left', marginBottom: '40px' }}>
+                <h3 style={{ fontSize: '1.1rem', fontWeight: 800, marginBottom: '24px', display: 'flex', alignItems: 'center', gap: '10px' }}> 
+                    <BarChart3 size={18} color="var(--accent)" /> Detailed Protocol Analysis 
+                </h3>
+                {sessionQs.map((q, i) => (
+                <div key={q.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 0', borderBottom: i < sessionQs.length - 1 ? '1px solid var(--border)' : 'none', gap: '24px' }}>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontWeight: 600, fontSize: '0.95rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{q.question}</div>
+                        <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '4px' }}>{q.topic} • {q.difficulty}</div>
+                    </div>
+                    <div style={{ 
+                        width: '44px', height: '44px', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyCenter: 'center',
+                        background: ratings[i] >= 4 ? 'rgba(16, 185, 129, 0.1)' : ratings[i] >= 2 ? 'rgba(245, 158, 11, 0.1)' : 'rgba(239, 68, 68, 0.1)',
+                        color: ratings[i] >= 4 ? 'var(--success)' : ratings[i] >= 2 ? 'var(--warning)' : 'var(--danger)',
+                        fontWeight: 800, flexShrink: 0 
+                    }}>
+                    <span style={{ margin: '0 auto' }}>{ratings[i] ? ratings[i] : '—'}</span>
+                    </div>
+                </div>
+                ))}
+            </div>
+
+            <div style={{ display: 'flex', gap: '16px', justifyContent: 'center' }} className="flex-col-mobile">
+                <button className="btn btn-ghost btn-lg w-full-mobile order-2-mobile" onClick={() => setPhase('setup')} style={{ borderRadius: '12px' }}>New Session</button>
+                <Link to="/progress" className="btn btn-primary btn-glow btn-lg w-full-mobile order-1-mobile" style={{ borderRadius: '12px', padding: '12px 48px', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '8px', justifyContent: 'center' }}>
+                    View Global Analytics <ChevronRight size={18} />
+                </Link>
+            </div>
+        </>
+      )}
     </motion.div>
   );
 }

@@ -39,16 +39,25 @@ export const NotificationProvider = ({ children }) => {
         }
     }, []);
 
+    const syncWithProgress = (notes) => {
+        setNotifications(prev => {
+            // Only sync if we have no AI notes yet or if they are very old
+            const hasAiNotes = prev.some(n => n.id.startsWith('ai-note-'));
+            if (hasAiNotes) return prev;
+            return [...notes, ...prev].slice(0, 20); // Keep top 20
+        });
+    };
+
     const addNotification = (type, title, message) => {
         const newNote = {
-            id: Date.now().toString(),
+            id: `note-${Date.now()}`,
             type,
             title,
             message,
             date: new Date().toISOString(),
             read: false
         };
-        setNotifications(prev => [newNote, ...prev]);
+        setNotifications(prev => [newNote, ...prev].slice(0, 20));
     };
 
     const markAsRead = (id) => {
@@ -70,6 +79,7 @@ export const NotificationProvider = ({ children }) => {
             notifications,
             unreadCount,
             addNotification,
+            syncWithProgress,
             markAsRead,
             markAllAsRead,
             clearAll

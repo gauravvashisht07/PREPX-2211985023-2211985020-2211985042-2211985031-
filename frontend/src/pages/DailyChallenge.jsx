@@ -1,48 +1,52 @@
-import { useState, useEffect } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useState } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../api/axios.js';
 import { dailyChallenges } from '../data/dailyChallenges.js';
 import { useToast } from '../context/ToastContext.jsx';
 import { Skeleton } from '../components/Skeleton.jsx';
-import { Flame, CheckCircle, ChevronDown, Zap, Lightbulb, Trophy, ArrowRight } from 'lucide-react';
+import { Flame, CheckCircle, ChevronDown, Zap, Lightbulb, Trophy, ArrowRight, Loader2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 export default function DailyChallenge() {
   const toast = useToast();
-  const [dailyInfo, setDailyInfo] = useState(null);
+  const queryClient = useQueryClient();
   const [revealed, setRevealed] = useState(false);
-  const [completing, setCompleting] = useState(false);
-  const [loading, setLoading] = useState(true);
 
-  const location = useLocation();
+  // Fetch Daily Info
+  const { data: dailyInfo, isLoading: loading } = useQuery({
+    queryKey: ['dailyChallenge'],
+    queryFn: async () => {
+      const res = await api.get('/daily/challenge');
+      return res.data;
+    }
+  });
 
-  useEffect(() => {
-    console.log('[DailyChallenge] Activating protocol:', location.key);
-    const controller = new AbortController();
-    setLoading(true);
-    api.get('/daily/challenge', { signal: controller.signal })
-      .then(r => { setDailyInfo(r.data); setLoading(false); })
-      .catch(err => { if (err.name !== 'CanceledError') { setLoading(false); toast.error('Failed to load challenge'); } });
-    return () => controller.abort();
-  }, [location.pathname]);
-
-  const challenge = dailyInfo ? dailyChallenges[dailyInfo.challengeIndex] : null;
-
-  const markComplete = async () => {
-    if (dailyInfo?.completed || completing) return;
-    setCompleting(true);
-    try {
-      await api.post('/daily/complete');
-      setDailyInfo(d => ({ ...d, completed: true }));
+  // Mutation to mark complete
+  const { mutate: completeMutation, isPending: completing } = useMutation({
+    mutationFn: async () => {
+      const res = await api.post('/daily/complete');
+      return res.data;
+    },
+    onSuccess: () => {
       toast.success('Challenge completed! Your streak is intensifying! 🔥');
-    } catch { toast.error('Marking failed'); }
-    finally { setCompleting(false); }
+      toast.success('Challenge Synchronized! +50 Preparation Points');
+      queryClient.invalidateQueries({ queryKey: ['dailyChallenge'] });
+      queryClient.invalidateQueries({ queryKey: ['userProgress'] });
+    },
+    onError: () => toast.error('Sync failed. Terminal connection unstable.')
+  });
+
+  const challenge = dailyInfo?.challenge;
+  const markComplete = () => {
+    if (dailyInfo?.completed || completing) return;
+    completeMutation();
   };
 
   const today = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
+  const userStreak = dailyInfo?.streak || 0;
 
   if (loading) return (
-    <div className="animate-fade-up">
+    <div className="animate-fade-up" aria-busy="true">
       <div className="section-header"><h1 className="section-title">Daily Challenge</h1></div>
       <div style={{ maxWidth: '800px' }}>
         <div className="glass-strong" style={{ padding: '40px' }}>
@@ -67,7 +71,7 @@ export default function DailyChallenge() {
         <p className="section-sub">{today} • <span className="gradient-text" style={{ fontWeight: 800 }}>Protocol Active</span></p>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(500px, 1fr) 300px', gap: '32px', alignItems: 'start' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(500px, 1fr) 300px', gap: '32px', alignItems: 'start' }} className="grid-res-1-mobile">
         <div className="flex flex-col gap-24">
             <motion.div 
                initial={{ opacity: 0, scale: 0.98 }}
@@ -78,6 +82,8 @@ export default function DailyChallenge() {
                    borderTop: dailyInfo?.completed ? '4px solid var(--success)' : '4px solid var(--warning)',
                    boxShadow: dailyInfo?.completed ? '0 20px 50px -10px rgba(16, 185, 129, 0.1)' : '0 20px 50px -10px rgba(245, 158, 11, 0.1)'
                }}
+               role="main"
+               aria-label={`Today's Challenge: ${challenge.title}`}
             >
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', marginBottom: '32px' }}>
                 <div>
@@ -87,15 +93,15 @@ export default function DailyChallenge() {
                   <h2 style={{ fontSize: '1.8rem', fontWeight: 800, lineHeight: 1.2 }}>{challenge.title}</h2>
                 </div>
                 {dailyInfo?.completed && (
-                  <div className="glass" style={{ padding: '8px 16px', background: 'rgba(16, 185, 129, 0.1)', color: 'var(--success)', borderRadius: '12px', display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 800, fontSize: '0.85rem' }}>
+                  <div className="glass" style={{ padding: '8px 16px', background: 'rgba(16, 185, 129, 0.1)', color: 'var(--success)', borderRadius: '12px', display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 800, fontSize: '0.85rem' }} role="status">
                     <CheckCircle size={18} /> SUCCESS
                   </div>
                 )}
               </div>
 
               <div style={{ display: 'flex', gap: '10px', marginBottom: '32px' }}>
-                <span className={`badge badge-${challenge.difficulty.toLowerCase()}`}>{challenge.difficulty}</span>
-                <span className="badge" style={{ background: 'rgba(255,255,255,0.05)', color: 'var(--text-secondary)' }}>{challenge.topic}</span>
+                <span className={`badge badge-${challenge.difficulty.toLowerCase()}`} aria-label={`Difficulty: ${challenge.difficulty}`}>{challenge.difficulty}</span>
+                <span className="badge" style={{ background: 'rgba(255,255,255,0.05)', color: 'var(--text-secondary)' }} aria-label={`Topic: ${challenge.topic}`}>{challenge.topic}</span>
               </div>
 
               <div className="glass" style={{ padding: '28px', background: 'rgba(0,0,0,0.2)', marginBottom: '32px', lineHeight: 1.8, fontSize: '1.05rem', color: 'var(--text-primary)' }}>
@@ -107,12 +113,13 @@ export default function DailyChallenge() {
                     className={`btn ${revealed ? 'btn-ghost' : 'btn-primary'}`} 
                     onClick={() => setRevealed(!revealed)}
                     style={{ borderRadius: '12px', padding: '12px 24px' }}
+                    aria-expanded={revealed}
                 >
                   <Lightbulb size={18} /> {revealed ? 'Hide Resources' : 'Analyze Hint & Solution'}
                 </button>
                 
                 {!dailyInfo?.completed && (
-                  <button className="btn btn-success btn-glow" onClick={markComplete} disabled={completing} style={{ borderRadius: '12px', padding: '12px 24px' }}>
+                  <button className="btn btn-success btn-glow" onClick={markComplete} disabled={completing} style={{ borderRadius: '12px', padding: '12px 24px' }} aria-label="Mark challenge as complete">
                     {completing ? 'Synchronizing...' : <><CheckCircle size={18} /> Confirm Completion</>}
                   </button>
                 )}
@@ -154,7 +161,7 @@ export default function DailyChallenge() {
                     <Flame size={48} color="var(--warning)" style={{ position: 'relative' }} />
                 </div>
                 <h3 style={{ fontSize: '1.2rem', fontWeight: 800, marginBottom: '8px' }}>Active Streak</h3>
-                <div style={{ fontSize: '2.5rem', fontWeight: 800, color: 'var(--text-primary)' }}>12 <span style={{ fontSize: '0.9rem', color: 'var(--text-muted)', fontWeight: 500 }}>DAYS</span></div>
+                <div style={{ fontSize: '2.5rem', fontWeight: 800, color: 'var(--text-primary)' }} aria-label={`Current streak: ${userStreak} days`}>{userStreak} <span style={{ fontSize: '0.9rem', color: 'var(--text-muted)', fontWeight: 500 }}>DAYS</span></div>
                 <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginTop: '12px' }}>Maintain your daily momentum to unlock high-tier preparation badges.</p>
             </div>
 

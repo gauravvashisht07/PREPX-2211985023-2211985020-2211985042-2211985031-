@@ -1,4 +1,5 @@
 import Progress from '../models/Progress.js';
+import MockInterviewSession from '../models/MockInterviewSession.js';
 
 const todayStr = () => new Date().toISOString().slice(0, 10);
 
@@ -22,8 +23,31 @@ const updateStreak = (progress) => {
 
 export const getProgress = async (req, res) => {
   try {
-    let progress = await Progress.findOne({ userId: req.userId });
-    if (!progress) progress = await Progress.create({ userId: req.userId });
+    const userId = req.userId;
+    let progress = await Progress.findOne({ userId }).lean();
+    if (!progress) {
+      const newProgress = await Progress.create({ userId });
+      progress = newProgress.toObject();
+    }
+
+    // Aggregate Mock Interview Stats
+    const sessionStats = await MockInterviewSession.aggregate([
+      { $match: { userId: progress.userId, status: 'completed' } },
+      { $group: {
+        _id: null,
+        count: { $sum: 1 },
+        avgScore: { $avg: '$totalScore' }
+      }}
+    ]);
+
+    progress.mockStats = sessionStats[0] || { count: 0, avgScore: 0 };
+    
+    // Dynamic Prep Score Calculation: (Solved * 10) + (MockCount * 50) + (AvgMockScore * 2)
+    const solvedCount = progress.solvedQuestions?.length || 0;
+    const mockCount = progress.mockStats.count;
+    const avgScore = progress.mockStats.avgScore;
+    progress.prepScore = (solvedCount * 10) + (mockCount * 50) + Math.round(avgScore * 2);
+
     res.json(progress);
   } catch (err) { res.status(500).json({ message: err.message }); }
 };

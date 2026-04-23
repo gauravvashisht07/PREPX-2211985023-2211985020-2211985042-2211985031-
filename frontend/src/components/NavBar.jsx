@@ -25,6 +25,7 @@ export default function NavBar({ onMenuClick }) {
         <button 
           className="btn-ghost p-8 hamburger md:hidden" 
           onClick={onMenuClick}
+          aria-label="Open navigation menu"
           style={{ border: 'none', background: 'none', cursor: 'pointer', display: 'flex' }}
         >
           <Menu size={20} color="white" />
@@ -40,6 +41,7 @@ export default function NavBar({ onMenuClick }) {
           <button 
             onClick={() => setShowNotifications(!showNotifications)}
             className="btn-ghost" 
+            aria-label={`View notifications, ${unreadCount} unread`}
             style={{ border: 'none', background: 'none', padding: '8px', cursor: 'pointer', position: 'relative' }}
           >
             <Bell size={20} color="var(--text-secondary)" />
@@ -55,6 +57,8 @@ export default function NavBar({ onMenuClick }) {
           <button 
             onClick={() => setShowUserMenu(!showUserMenu)}
             className="user-profile-trigger glass" 
+            aria-label="User account menu"
+            aria-expanded={showUserMenu}
             style={{ 
               display: 'flex', alignItems: 'center', gap: '12px', padding: '6px 12px', borderRadius: '12px', 
               border: '1px solid rgba(255,255,255,0.05)', background: 'rgba(255,255,255,0.02)', cursor: 'pointer' 

@@ -1,48 +1,82 @@
-import { useState, useEffect, useRef } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { mcqQuestions, mcqTopics, mcqDifficulties } from '../data/mcqQuestions.js';
 import api from '../api/axios.js';
 import { useToast } from '../context/ToastContext.jsx';
 import { QuestionSkeleton } from '../components/Skeleton.jsx';
-import { ChevronDown, ChevronUp, CheckCircle, Circle, Search, Filter, Target, BarChart3, HelpCircle } from 'lucide-react';
+import { ChevronDown, CheckCircle, Circle, Search, Filter, Target, BarChart3, HelpCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 export default function MCQ() {
   const toast = useToast();
-  const [topic, setTopic] = useState('All');
-  const [diff, setDiff] = useState('All');
-  const [search, setSearch] = useState('');
-  const [debouncedSearch, setDebouncedSearch] = useState('');
+  const queryClient = useQueryClient();
+  const [topic, setTopic] = useState(() => sessionStorage.getItem('mcq_topic') || 'All');
+  const [diff, setDiff] = useState(() => sessionStorage.getItem('mcq_diff') || 'All');
+  const [search, setSearch] = useState(() => sessionStorage.getItem('mcq_search') || '');
+  const [debouncedSearch, setDebouncedSearch] = useState(search);
   const [expanded, setExpanded] = useState(null);
-  const [attempted, setAttempted] = useState([]);
-  const [answers, setAnswers] = useState({});
-  const [loading, setLoading] = useState(true);
-  const [submitting, setSubmitting] = useState(null);
 
+  useEffect(() => {
+    sessionStorage.setItem('mcq_topic', topic);
+    sessionStorage.setItem('mcq_diff', diff);
+    sessionStorage.setItem('mcq_search', search);
+  }, [topic, diff, search]);
+
+  // Debounce search
   useEffect(() => {
     const timer = setTimeout(() => setDebouncedSearch(search), 300);
     return () => clearTimeout(timer);
   }, [search]);
 
-  const location = useLocation();
+  // Fetch MCQ progress
+  const { data: mcqData, isLoading: loading } = useQuery({
+    queryKey: ['mcqProgress'],
+    queryFn: async () => {
+      const r = await api.get('/mcq');
+      const answersMap = {};
+      Object.entries(r.data.answers || {}).forEach(([key, value]) => {
+        answersMap[parseInt(key)] = value;
+      });
+      return { 
+        attempted: r.data.attemptedQuestions || [], 
+        answers: answersMap 
+      };
+    },
+    staleTime: 2 * 60 * 1000,
+  });
 
-  useEffect(() => {
-    console.log('[MCQ] Syncing assessment data:', location.key);
-    const controller = new AbortController();
-    setLoading(true);
-    api.get('/mcq', { signal: controller.signal })
-      .then(r => {
-        setAttempted(r.data.attemptedQuestions || []);
-        const answersMap = {};
-        Object.entries(r.data.answers || {}).forEach(([key, value]) => {
-          answersMap[parseInt(key)] = value;
-        });
-        setAnswers(answersMap);
-        setLoading(false);
-      })
-      .catch(err => { if (err.name !== 'CanceledError') setLoading(false); });
-    return () => controller.abort();
-  }, [location.pathname]);
+  const attempted = mcqData?.attempted || [];
+  const answers = mcqData?.answers || {};
+
+  // Mutation for submitting answers
+  const { mutate: submitAnswer, isPending: submittingId } = useMutation({
+    mutationFn: async ({ questionId, selectedOption, topic, isCorrect }) => {
+      const res = await api.post('/mcq/answer', { questionId, selectedOption, topic, isCorrect });
+      return res.data;
+    },
+    onSuccess: (data, variables) => {
+      queryClient.setQueryData(['mcqProgress'], (old) => {
+        const newAnswers = { ...old.answers };
+        newAnswers[variables.questionId] = variables.selectedOption;
+        return {
+          ...old,
+          attempted: data.attemptedQuestions || [],
+          answers: newAnswers
+        };
+      });
+      // Also invalidate progress to keep Dashboard updated
+      queryClient.invalidateQueries({ queryKey: ['userProgress'] });
+
+      const isAlreadyAnswered = Object.hasOwn(answers, variables.questionId);
+      if (!isAlreadyAnswered) {
+        if (variables.isCorrect) toast.success('Correct answer! 🎉');
+        else toast.error(`Incorrect choice`);
+      } else {
+        toast.info('Answer updated');
+      }
+    },
+    onError: () => toast.error('Submission failed'),
+  });
 
   const filtered = mcqQuestions.filter(q =>
     (topic === 'All' || q.topic === topic) &&
@@ -50,31 +84,12 @@ export default function MCQ() {
     (debouncedSearch === '' || q.question.toLowerCase().includes(debouncedSearch.toLowerCase()))
   );
 
-  const handleAnswerSubmit = async (questionId, selectedOption) => {
-    if (submitting === questionId) return;
-    const isMCQAnswered = Object.hasOwn(answers, questionId);
-    setSubmitting(questionId);
-
-    try {
-      const question = mcqQuestions.find(q => q.id === questionId);
-      const isCorrect = selectedOption === question.correctAnswer;
-      const res = await api.post('/mcq/answer', { questionId, selectedOption, topic: question.topic, isCorrect });
-      
-      const answersMap = {};
-      Object.entries(res.data.answers || {}).forEach(([key, value]) => {
-        answersMap[parseInt(key)] = value;
-      });
-      setAnswers(answersMap);
-      setAttempted(res.data.attemptedQuestions || []);
-
-      if (!isMCQAnswered) {
-        if (isCorrect) toast.success('Correct answer! 🎉');
-        else toast.error(`Incorrect choice`);
-      } else {
-        toast.info('Answer updated');
-      }
-    } catch { toast.error('Submission failed'); }
-    setSubmitting(null);
+  const handleAnswerSubmit = (questionId, selectedOption) => {
+    if (submittingId === questionId) return;
+    const question = mcqQuestions.find(q => q.id === questionId);
+    const isCorrect = selectedOption === question.correctAnswer;
+    
+    submitAnswer({ questionId, selectedOption, topic: question.topic, isCorrect });
   };
 
 
@@ -114,6 +129,7 @@ export default function MCQ() {
               <input 
                 className="input" placeholder="Search parameters..." 
                 value={search} onChange={e => setSearch(e.target.value)} 
+                aria-label="Search MCQ questions"
               />
             </div>
 
@@ -125,6 +141,7 @@ export default function MCQ() {
                 {mcqTopics.map(t => (
                   <button 
                     key={t} className={`nav-link ${topic === t ? 'active' : ''}`} onClick={() => setTopic(t)}
+                    aria-pressed={topic === t}
                     style={{ background: 'none', border: 'none', padding: '10px 12px', fontSize: '0.85rem' }}
                   >
                     {t}
@@ -142,6 +159,7 @@ export default function MCQ() {
                   <button 
                     key={d} onClick={() => setDiff(d)}
                     className={`btn ${diff === d ? 'btn-primary' : 'btn-ghost'}`}
+                    aria-pressed={diff === d}
                     style={{ padding: '6px 12px', fontSize: '0.75rem', borderRadius: '8px' }}
                   >
                     {d}
@@ -209,7 +227,7 @@ export default function MCQ() {
                                             <button 
                                                 key={i} 
                                                 onClick={() => handleAnswerSubmit(q.id, i)}
-                                                disabled={submitting === q.id}
+                                                disabled={submittingId}
                                                 style={{ 
                                                     padding: '16px', borderRadius: '12px', textAlign: 'left', cursor: 'pointer',
                                                     background: selected === i ? (isCorrect ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)') : 'rgba(255,255,255,0.02)',

@@ -97,3 +97,34 @@ export function generateInsights(progress) {
 
   return { insights, priority };
 }
+
+// ─────────────────────────────────────────────
+//  Notification Generator
+// ─────────────────────────────────────────────
+export function generateNotifications(progress) {
+  if (!progress) return [];
+  
+  const { insights } = generateInsights(progress);
+  const notes = [];
+  
+  // Map insights to notification objects
+  insights.slice(0, 3).forEach((msg, i) => {
+    let type = 'AI_SUGGESTION';
+    if (msg.includes('🔥')) type = 'DAILY_REMINDER';
+    if (msg.includes('📚')) type = 'PROGRESS_UPDATE';
+    if (msg.includes('⭐')) type = 'ACHIEVEMENT';
+
+    notes.push({
+      id: `ai-note-${Date.now()}-${i}`,
+      type,
+      title: type === 'AI_SUGGESTION' ? 'Strategic Insight' : 
+             type === 'DAILY_REMINDER' ? 'Streak Alert' : 
+             type === 'PROGRESS_UPDATE' ? 'Mastery Update' : 'Milestone Unlocked',
+      message: msg.replace(/[🔥📚🎯💡✅⭐⚠️]/g, '').trim(),
+      date: new Date().toISOString(),
+      read: false
+    });
+  });
+
+  return notes;
+}

@@ -46,13 +46,14 @@ export default function Sidebar({ collapsed, setCollapsed, open, onClose }) {
       <aside 
         className={`sidebar-container ${collapsed ? 'collapsed' : 'expanded'} ${open ? 'mobile-open' : ''}`} 
         style={{ width: collapsed ? 'var(--sidebar-collapsed-w)' : 'var(--sidebar-w)' }}
+        aria-label="Main Navigation Sidebar"
       >
         <div className="sidebar-header">
           <div className="logo-box">P</div>
           {!collapsed && <span className="logo-text">PREPX</span>}
         </div>
 
-        <nav className="nav-list custom-scrollbar">
+        <nav className="nav-list custom-scrollbar" aria-label="Sidebar navigation links">
           {sidebarGroups.map((group, idx) => (
             <div key={idx} style={{ marginBottom: '24px' }}>
               {!collapsed && <div className="nav-section-title" style={{ fontSize: '0.7rem', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: '12px', paddingLeft: '14px', letterSpacing: '1px', fontWeight: 700 }}>{group.title}</div>}
@@ -63,6 +64,7 @@ export default function Sidebar({ collapsed, setCollapsed, open, onClose }) {
                   onClick={() => { if (window.innerWidth <= 768) onClose(); }}
                   className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
                   title={collapsed ? label : ''}
+                  aria-label={label}
                 >
                   <Icon size={20} className="nav-icon" strokeWidth={collapsed ? 2 : 1.5} />
                   {!collapsed && <span>{label}</span>}
@@ -76,6 +78,7 @@ export default function Sidebar({ collapsed, setCollapsed, open, onClose }) {
           <button 
             onClick={() => setCollapsed(!collapsed)}
             className="btn-ghost hidden md:flex"
+            aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
             style={{ width: '100%', justifyContent: collapsed ? 'center' : 'space-between', padding: '8px', border: 'none', background: 'none', cursor: 'pointer', alignItems: 'center' }}
           >
             {!collapsed && <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>Collapse</span>}

@@ -1,8 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../api/axios.js';
 import { useToast } from '../context/ToastContext.jsx';
-import { Skeleton } from '../components/Skeleton.jsx';
-import { Plus, Trash2, Check, Filter, Calendar, Tag, AlertCircle } from 'lucide-react';
+import { StatCardSkeleton } from '../components/Skeleton.jsx'; // Using StatCardSkeleton instead of generic Skeleton
+import { Plus, Trash2, Check, Calendar, Tag } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const FILTERS = ['All', 'Today', 'Pending', 'Completed'];
@@ -10,45 +11,66 @@ const todayStr = () => new Date().toISOString().slice(0, 10);
 
 export default function TodoPlanner() {
   const toast = useToast();
-  const [todos, setTodos] = useState([]);
+  const queryClient = useQueryClient();
   const [filter, setFilter] = useState('All');
   const [form, setForm] = useState({ title: '', priority: 'medium', dueDate: '', topic: '' });
-  const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    const controller = new AbortController();
-    api.get('/todos', { signal: controller.signal })
-      .then(r => { setTodos(r.data); setLoading(false); })
-      .catch(err => { if (err.name !== 'CanceledError') { setLoading(false); toast.error('Failed to load tasks'); } });
-    return () => controller.abort();
-  }, []);
+  // Query for todos
+  const { data: todos = [], isLoading } = useQuery({
+    queryKey: ['todos'],
+    queryFn: async () => {
+      const res = await api.get('/todos');
+      return res.data;
+    }
+  });
 
-  const create = async e => {
-    e.preventDefault();
-    if (!form.title.trim()) return;
-    try {
-      const res = await api.post('/todos', form);
-      setTodos(t => [res.data, ...t]);
+  // Create Mutation
+  const createMutation = useMutation({
+    mutationFn: async (newTodo) => {
+      const res = await api.post('/todos', newTodo);
+      return res.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['todos'] });
       setForm({ title: '', priority: 'medium', dueDate: '', topic: '' });
       toast.success('Task added! ✅');
-    } catch { toast.error('Failed to create task'); }
-  };
+    },
+    onError: () => toast.error('Failed to create task')
+  });
 
-  const toggle = async (todo) => {
-    try {
+  // Toggle Mutation
+  const toggleMutation = useMutation({
+    mutationFn: async (todo) => {
       const res = await api.put(`/todos/${todo._id}`, { completed: !todo.completed });
-      setTodos(ts => ts.map(t => t._id === todo._id ? res.data : t));
-      toast.info(res.data.completed ? 'Task completed! 🎉' : 'Task reopened');
-    } catch { toast.error('Failed to update task'); }
+      return res.data;
+    },
+    onSuccess: (updated) => {
+      queryClient.invalidateQueries({ queryKey: ['todos'] });
+      toast.info(updated.completed ? 'Task completed! 🎉' : 'Task reopened');
+    },
+    onError: () => toast.error('Failed to update task')
+  });
+
+  // Delete Mutation
+  const deleteMutation = useMutation({
+    mutationFn: async (id) => {
+      await api.delete(`/todos/${id}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['todos'] });
+      toast.info('Task deleted');
+    },
+    onError: () => toast.error('Failed to delete task')
+  });
+
+  const create = e => {
+    e.preventDefault();
+    if (!form.title.trim()) return;
+    createMutation.mutate(form);
   };
 
-  const remove = async (id) => {
-    try {
-      await api.delete(`/todos/${id}`);
-      setTodos(ts => ts.filter(t => t._id !== id));
-      toast.info('Task deleted');
-    } catch { toast.error('Failed to delete task'); }
-  };
+  const toggle = (todo) => toggleMutation.mutate(todo);
+  const remove = (id) => deleteMutation.mutate(id);
 
   const filtered = todos.filter(t => {
     if (filter === 'Today') return t.dueDate === todayStr();
@@ -158,8 +180,13 @@ export default function TodoPlanner() {
                 </div>
               </div>
 
-              <button id="todo-submit" type="submit" className="btn btn-primary btn-glow w-full" style={{ padding: '14px', borderRadius: '12px' }}>
-                <Plus size={18} /> Add to Schedule
+              <button 
+                id="todo-submit" type="submit" 
+                disabled={createMutation.isPending}
+                className="btn btn-primary btn-glow w-full" 
+                style={{ padding: '14px', borderRadius: '12px' }}
+              >
+                {createMutation.isPending ? 'Syncing...' : <><Plus size={18} /> Add to Schedule</>}
               </button>
             </form>
           </motion.div>
@@ -179,8 +206,8 @@ export default function TodoPlanner() {
             ))}
           </div>
 
-          {loading ? (
-            Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} height={80} style={{ marginBottom: 12 }} />)
+          {isLoading ? (
+            Array.from({ length: 4 }).map((_, i) => <StatCardSkeleton key={i} style={{ marginBottom: 12, height: '80px' }} />)
           ) : filtered.length === 0 ? (
             <motion.div 
                initial={{ opacity: 0 }}

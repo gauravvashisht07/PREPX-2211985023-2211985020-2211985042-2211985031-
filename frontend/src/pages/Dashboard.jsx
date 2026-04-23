@@ -1,7 +1,10 @@
-import { useEffect, useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { useEffect } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
+import { useNotifications } from '../context/NotificationContext.jsx';
 import api from '../api/axios.js';
+import { generateNotifications } from '../utils/aiInsights.js';
 import { StatCardSkeleton } from '../components/Skeleton.jsx';
 import { BookOpen, Flame, Target, Award, ArrowRight, Zap, Code2, Users, Trophy, BarChart2, Star } from 'lucide-react';
 import { motion } from 'framer-motion';
@@ -33,24 +36,26 @@ const itemVariants = {
 
 export default function Dashboard() {
   const { user } = useAuth();
-  const [progress, setProgress] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const { syncWithProgress } = useNotifications();
+  
+  const { data: progress, isLoading: loading } = useQuery({
+    queryKey: ['userProgress'],
+    queryFn: async () => {
+      const res = await api.get('/progress');
+      return res.data;
+    },
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
 
-  const location = useLocation();
-
+  // Sync AI notifications when progress data arrives
   useEffect(() => {
-    console.log('[Dashboard] Mounting / Fetching fresh data:', location.key);
-    const controller = new AbortController();
-    setLoading(true);
-    api.get('/progress', { signal: controller.signal })
-      .then(r => {
-        console.log('[Dashboard] Data loaded:', r.data.solvedQuestions?.length, 'solved');
-        setProgress(r.data);
-      })
-      .catch(() => {})
-      .finally(() => setLoading(false));
-    return () => controller.abort();
-  }, [location.pathname]);
+    if (progress) {
+      const generatedNotes = generateNotifications(progress);
+      if (generatedNotes.length > 0) {
+        syncWithProgress(generatedNotes);
+      }
+    }
+  }, [progress, syncWithProgress]);
 
   const solved = progress?.solvedQuestions?.length || 0;
   const streak = progress?.streak || 0;
