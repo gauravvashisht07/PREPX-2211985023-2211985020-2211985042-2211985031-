@@ -1,6 +1,6 @@
 import { NavLink } from 'react-router-dom';
-import { 
-  LayoutDashboard, BookOpen, Mic2, FileText, BarChart2, 
+import {
+  LayoutDashboard, BookOpen, Mic2, FileText, BarChart2,
   Star, Building2, StickyNote, CheckSquare, ChevronLeft, ChevronRight,
   Target, Award
 } from 'lucide-react';
@@ -38,13 +38,13 @@ export default function Sidebar({ collapsed, setCollapsed, open, onClose }) {
   return (
     <>
       {/* Overlay for mobile drawer */}
-      <div 
-        className={`sidebar-overlay ${open ? 'visible' : ''}`} 
+      <div
+        className={`sidebar-overlay ${open ? 'visible' : ''}`}
         onClick={onClose}
       />
 
-      <aside 
-        className={`sidebar-container ${collapsed ? 'collapsed' : 'expanded'} ${open ? 'mobile-open' : ''}`} 
+      <aside
+        className={`sidebar-container ${collapsed ? 'collapsed' : 'expanded'} ${open ? 'mobile-open' : ''}`}
         style={{ width: collapsed ? 'var(--sidebar-collapsed-w)' : 'var(--sidebar-w)' }}
         aria-label="Main Navigation Sidebar"
       >
@@ -74,14 +74,13 @@ export default function Sidebar({ collapsed, setCollapsed, open, onClose }) {
           ))}
         </nav>
 
-        <div className="sidebar-footer" style={{ marginTop: 'auto', padding: '16px', borderTop: '1px solid var(--border)' }}>
-          <button 
+        <div className="sidebar-footer" style={{ marginTop: 'auto', padding: '12px', borderTop: '1px solid var(--border)' }}>
+          <button
             onClick={() => setCollapsed(!collapsed)}
             className="btn-ghost hidden md:flex"
             aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-            style={{ width: '100%', justifyContent: collapsed ? 'center' : 'space-between', padding: '8px', border: 'none', background: 'none', cursor: 'pointer', alignItems: 'center' }}
+            style={{ width: '100%', justifyContent: 'center', padding: '10px', border: 'none', background: 'none', cursor: 'pointer', alignItems: 'center', borderRadius: '8px', transition: '0.3s' }}
           >
-            {!collapsed && <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>Collapse</span>}
             {collapsed ? <ChevronRight size={20} color="var(--text-secondary)" /> : <ChevronLeft size={20} color="var(--text-secondary)" />}
           </button>
         </div>
