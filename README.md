@@ -2,7 +2,7 @@
 
 PREPX is a full-stack web application developed to help students prepare effectively for technical interviews, coding assessments, and placement drives. It provides a centralized platform where users can practice technical questions, attempt mock interviews, track progress, build resumes, and improve their preparation in a structured way.
 
-
+![Dashboard Preview](frontend/public/images/image.png)
 
 ---
 
