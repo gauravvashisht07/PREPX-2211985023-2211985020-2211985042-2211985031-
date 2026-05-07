@@ -1,41 +1,45 @@
 # PREPX – Full-Stack Interview Preparation Platform
 
-PREPX is a full-stack web application developed to help students prepare effectively for technical interviews, coding assessments, and placement drives. It provides a centralized platform where users can practice technical questions, attempt mock interviews, track progress, build resumes, and improve their preparation in a structured way.
+PREPX is a full-stack web application developed as a final year project to help students prepare for technical interviews and placement drives in a more organized and practical way. The platform combines interview preparation tools, progress tracking, mock interviews, resume building, and AI-based evaluation features into one system.
+
+The main goal of this project is to provide students with a centralized platform where they can practice consistently, improve their technical knowledge, and monitor their preparation progress.
 
 ![Dashboard Preview](frontend/public/images/image.png)
 
 ---
 
-##  Key Features
+# Features
 
-* **Dashboard** – Personalized dashboard to monitor preparation progress, streaks, completed tasks, and overall performance.
-* **AI Insights** – Smart suggestions based on user activity, weak topics, and preparation trends.
-* **Mock Interview Module** – Practice interview sessions with timed questions and performance tracking.
-* **Progress Analytics** – Visual reports showing topic-wise growth, scores, and consistency.
-* **Resume Builder** – Create professional ATS-friendly resumes with easy step-by-step forms.
-* **To-Do Planner** – Manage daily preparation tasks and track completion status.
-* **Question Bank & MCQs** – Curated interview questions across DSA, DBMS, OS, CN, and aptitude topics.
-* **Responsive Design** – Works smoothly across desktop, tablet, and mobile devices.
+* User Authentication using JWT
+* Dashboard with preparation statistics and progress tracking
+* Question Bank for DSA, DBMS, Operating Systems, Computer Networks, and HR questions
+* MCQ Practice Module
+* Mock Interview System
+* AI-based Answer Evaluation using rule-based logic
+* Resume Builder
+* To-Do Planner for daily preparation tasks
+* Progress Analytics and Performance Tracking
+* Responsive UI for desktop, tablet, and mobile devices
 
 ---
 
-## Tech Stack
+# Tech Stack
 
-### Frontend
+## Frontend
 
-* React 18 (Vite)
+* React.js (Vite)
 * React Router DOM
 * TanStack React Query
 * Framer Motion
 * Three.js
 * Lucide React
-* CSS3 (Custom Responsive UI)
+* CSS3
 
-### Backend
+## Backend
 
 * Node.js
 * Express.js
-* MongoDB (Mongoose)
+* MongoDB with Mongoose
 * JWT Authentication
 * Helmet.js
 * Express Rate Limit
@@ -43,55 +47,62 @@ PREPX is a full-stack web application developed to help students prepare effecti
 
 ---
 
-##  Project Structure
+# Project Structure
 
 ```bash
 prepx/
 ├── frontend/
+│   ├── public/
 │   ├── src/
-│   │   ├── components/      # Reusable UI components
-│   │   ├── context/         # Global state management
-│   │   ├── pages/           # Application pages
-│   │   ├── utils/           # Helper functions
-│   │   └── api/             # API configuration
+│   │   ├── components/
+│   │   ├── pages/
+│   │   ├── context/
+│   │   ├── utils/
+│   │   └── api/
 │
 ├── backend/
-│   ├── controllers/         # Request handling logic
-│   ├── models/              # MongoDB schemas
-│   ├── routes/              # API routes
-│   ├── middleware/          # Auth & security
-│   └── config/              # Database config
+│   ├── config/
+│   ├── controllers/
+│   ├── middleware/
+│   ├── models/
+│   ├── routes/
+│   ├── services/
+│   └── utils/
+│
+├── README.md
+└── .gitignore
 ```
 
 ---
 
-##  Getting Started
+# Installation and Setup
 
-### Prerequisites
+## Prerequisites
 
-* Node.js (v16 or above)
-* MongoDB Atlas / Local MongoDB
+Make sure the following are installed:
+
+* Node.js
+* MongoDB Atlas or Local MongoDB
 * Git
 
 ---
 
-### 1️ Backend Setup
+## Backend Setup
 
 ```bash
 cd backend
 npm install
 ```
 
-Create `.env` file inside backend folder:
+Create a `.env` file inside the backend folder:
 
 ```env
 PORT=5000
 MONGODB_URI=your_mongodb_connection_string
 JWT_SECRET=your_secret_key
-ANTHROPIC_API_KEY=optional_key_for_ai_features
 ```
 
-Run backend server:
+Run the backend server:
 
 ```bash
 npm run dev
@@ -99,7 +110,7 @@ npm run dev
 
 ---
 
-### 2️ Frontend Setup
+## Frontend Setup
 
 ```bash
 cd frontend
@@ -107,45 +118,76 @@ npm install
 npm run dev
 ```
 
----
+Frontend will run on:
 
-## API Endpoints
-
-* `POST /api/auth/register` – Register new user
-* `POST /api/auth/login` – Login user
-* `GET /api/progress` – Fetch user progress
-* `GET /api/mock` – Get mock interview history
-* `POST /api/ai/evaluate` – Evaluate answers with AI logic
-* `PUT /api/resume` – Save resume data
+```bash
+http://localhost:5173
+```
 
 ---
 
-## Future Enhancements
+# API Endpoints
 
-* Real-time AI interview voice assistant
-* Company-wise interview preparation paths
-* Leaderboard and achievements system
+| Method | Endpoint           | Description                |
+| ------ | ------------------ | -------------------------- |
+| POST   | /api/auth/register | Register a new user        |
+| POST   | /api/auth/login    | Login user                 |
+| GET    | /api/progress      | Fetch user progress        |
+| GET    | /api/mock          | Get mock interview history |
+| POST   | /api/ai/evaluate   | Evaluate answers           |
+| PUT    | /api/resume        | Save resume data           |
+
+---
+
+# Repository Contents
+
+This repository contains:
+
+* Frontend source code
+* Backend source code
+* Project Report
+* Presentation PPT
+* IPR / Copyright Submission Proof
+
+---
+
+# Future Enhancements
+
+* Voice-based AI mock interviews
+* Leaderboard system
+* Company-specific interview preparation
+* Personalized preparation roadmap
 * Email reminders and notifications
-* Personalized study roadmap generation
 
 ---
 
-## Team Members
+# Team Members
 
-* Gaurav Sharma
-* Kalash Thakur
-* Ruhael Singh
-* Mahikshit Choudhary
-
----
-
-## Conclusion
-
-PREPX is designed to simplify placement preparation by combining learning tools, practice modules, analytics, and productivity features into one platform. It helps students prepare consistently and confidently for interviews.
+| Name                | Roll Number |
+| ------------------- | ----------- |
+| Kalash Thakur       | 2211985023  |
+| Gaurav Sharma       | 2211985020  |
+| Ruhael Singh        | 2211985042  |
+| Mahikshit Choudhary | 2211985031  |
 
 ---
 
-**Developed as a Final Year Major Project**
-**© PREPX 2026**
-"# PREPX-2211985023-2211985020-2211985042-2211985031-" 
-"# PREPX-2211985023-2211985020-2211985042-2211985031-" 
+# Project Details
+
+* Project Title: PREPX – Full-Stack Interview Preparation Platform
+* Project Type: Final Year Major Project (IOHE)
+* Department: Computer Science and Engineering
+* University: Chitkara University
+* Supervisor: Dr. Rajat Takkar
+* Current Status: Completed and Working
+
+---
+
+# Conclusion
+
+PREPX was developed to simplify placement preparation for students by combining multiple preparation tools into one platform. The project focuses on improving consistency, tracking performance, and providing a better preparation experience for technical interviews.
+
+---
+
+Developed as part of the Final Year Major Project Submission
+© PREPX 2026
